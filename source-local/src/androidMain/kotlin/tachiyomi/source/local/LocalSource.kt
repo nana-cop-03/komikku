@@ -48,10 +48,10 @@ import tachiyomi.source.local.metadata.fillMetadata
 import uy.kohesive.injekt.injectLazy
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.InputStream
-import java.nio.charset.StandardCharsets
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.time.Duration.Companion.days
