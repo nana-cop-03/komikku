@@ -433,6 +433,7 @@ actual class LocalSource(
                         }
 
                     entry?.let { coverManager.update(manga, it.openInputStream()) }
+                    null
                 }
                 is Format.Archive -> {
                     format.file.archiveReader(context).use { reader ->
@@ -444,6 +445,7 @@ actual class LocalSource(
 
                         entry?.let { coverManager.update(manga, reader.getInputStream(it.name)!!, reader.encrypted) }
                     }
+                    null
                 }
                 is Format.Epub -> {
                     format.file.epubReader(context).use { epub ->
@@ -451,6 +453,7 @@ actual class LocalSource(
 
                         entry?.let { coverManager.update(manga, epub.getInputStream(it)!!) }
                     }
+                    null
                 }
                 is Format.Pdf -> {
                     format.file.pdfReader(context).use { pdf ->
@@ -461,6 +464,7 @@ actual class LocalSource(
                             coverManager.update(manga, ByteArrayInputStream(stream.toByteArray()))
                         }
                     }
+                    null
                 }
             }
         } catch (e: Throwable) {
