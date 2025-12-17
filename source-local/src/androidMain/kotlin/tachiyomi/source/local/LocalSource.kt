@@ -357,74 +357,76 @@ actual class LocalSource(
     }
 
     // Chapters
-    override suspend fun getChapterList(manga: SManga): List<SChapter> = withIOContext {
-        val mangaDir = fileSystem.getMangaDirectory(manga.url) ?: return emptyList()
-        val chapters = fileSystem.getFilesInMangaDirectory(manga.url)
-            // Only keep supported formats
-            .filterNot { it.name.orEmpty().startsWith('.') }
-            .filter { it.isDirectory || Archive.isSupported(it) || it.extension.equals("epub", true) || it.extension.equals("pdf", true) }
-            .map { chapterFile ->
-                val originalFormat = Format.valueOf(chapterFile)
-                val format: Format
-                val fileToUse: UniFile
-                if (originalFormat is Format.Pdf) {
-                    val zipName = chapterFile.nameWithoutExtension + ".zip"
-                    val zipFile = mangaDir.findFile(zipName)
-                    if (zipFile != null) {
-                        format = Format.Zip(zipFile)
-                        fileToUse = zipFile
-                    } else {
-                        // convert
-                        val backupDir = mangaDir.createDirectory(".backupfiles_pdf")!!
-                        val zipFileCreated = mangaDir.createFile(zipName)!!
-                        convertPdfToZip(chapterFile, zipFileCreated, backupDir)
-                        format = Format.Zip(zipFileCreated)
-                        fileToUse = zipFileCreated
-                    }
-                } else {
-                    format = originalFormat
-                    fileToUse = chapterFile
-                }
-                SChapter.create().apply {
-                    url = "${manga.url}/${fileToUse.name}"
-                    name = if (fileToUse.isDirectory) {
-                        fileToUse.name
-                    } else {
-                        fileToUse.nameWithoutExtension
-                    }.orEmpty()
-                    date_upload = fileToUse.lastModified()
-                    chapter_number = ChapterRecognition
-                        .parseChapterNumber(manga.title, this.name, this.chapter_number.toDouble())
-                        .toFloat()
-
-                    if (format is Format.Epub) {
-                        format.file.epubReader(context).use { epub ->
-                            epub.fillMetadata(manga, this)
+    override suspend fun getChapterList(manga: SManga): List<SChapter> {
+        return withIOContext {
+            val mangaDir = fileSystem.getMangaDirectory(manga.url) ?: return@withIOContext emptyList()
+            val chapters = fileSystem.getFilesInMangaDirectory(manga.url)
+                // Only keep supported formats
+                .filterNot { it.name.orEmpty().startsWith('.') }
+                .filter { it.isDirectory || Archive.isSupported(it) || it.extension.equals("epub", true) || it.extension.equals("pdf", true) }
+                .map { chapterFile ->
+                    val originalFormat = Format.valueOf(chapterFile)
+                    val format: Format
+                    val fileToUse: UniFile
+                    if (originalFormat is Format.Pdf) {
+                        val zipName = chapterFile.nameWithoutExtension + ".zip"
+                        val zipFile = mangaDir.findFile(zipName)
+                        if (zipFile != null) {
+                            format = Format.valueOf(zipFile)
+                            fileToUse = zipFile
+                        } else {
+                            // convert
+                            val backupDir = mangaDir.createDirectory(".backupfiles_pdf")!!
+                            val zipFileCreated = mangaDir.createFile(zipName)!!
+                            convertPdfToZip(chapterFile, zipFileCreated, backupDir)
+                            format = Format.valueOf(zipFileCreated)
+                            fileToUse = zipFileCreated
                         }
-                    } else if (format !is Format.Pdf) {
-                        getComicInfoForChapter<Unit>(fileToUse) { stream, /* SY --> */ _ /* SY <-- */ ->
-                            setChapterDetailsFromComicInfoFile(stream, this)
+                    } else {
+                        format = originalFormat
+                        fileToUse = chapterFile
+                    }
+                    SChapter.create().apply {
+                        url = "${manga.url}/${fileToUse.name}"
+                        name = if (fileToUse.isDirectory) {
+                            fileToUse.name
+                        } else {
+                            fileToUse.nameWithoutExtension
+                        }.orEmpty()
+                        date_upload = fileToUse.lastModified()
+                        chapter_number = ChapterRecognition
+                            .parseChapterNumber(manga.title, this.name, this.chapter_number.toDouble())
+                            .toFloat()
+
+                        if (format is Format.Epub) {
+                            format.file.epubReader(context).use { epub ->
+                                epub.fillMetadata(manga, this)
+                            }
+                        } else if (format !is Format.Pdf) {
+                            getComicInfoForChapter(fileToUse) { stream, /* SY --> */ _ /* SY <-- */ ->
+                                setChapterDetailsFromComicInfoFile(stream, this)
+                            }
                         }
                     }
                 }
-            }
-            .sortedWith { c1, c2 ->
-                c2.name.compareToCaseInsensitiveNaturalOrder(c1.name)
+                .sortedWith { c1, c2 ->
+                    c2.name.compareToCaseInsensitiveNaturalOrder(c1.name)
+                }
+
+            // Copy the cover from the first chapter found if not available
+            if (manga.thumbnail_url.isNullOrBlank()) {
+                chapters.lastOrNull()?.let { chapter ->
+                    updateCover(chapter, manga)
+                }
             }
 
-        // Copy the cover from the first chapter found if not available
-        if (manga.thumbnail_url.isNullOrBlank()) {
-            chapters.lastOrNull()?.let { chapter ->
-                updateCover(chapter, manga)
-            }
+            chapters
         }
-
-        chapters
     }
 
     private suspend fun convertPdfToZip(pdfFile: UniFile, zipFile: UniFile, backupDir: UniFile) = withIOContext {
         val tempDir = File(context.cacheDir, "pdf_temp").apply { mkdirs() }
-        pdfReader(pdfFile, context).use { pdf ->
+        pdfFile.pdfReader(context).use { pdf ->
             val images = mutableListOf<File>()
             for (i in 0 until pdf.pageCount) {
                 val bitmap = pdf.renderPage(i, width = 1200, height = 1600)
@@ -446,7 +448,8 @@ actual class LocalSource(
         }
         // move pdf to backup
         val backupFile = backupDir.createFile(pdfFile.name)!!
-        pdfFile.moveTo(backupFile)
+        pdfFile.copyTo(backupFile)
+        pdfFile.delete()
     }
 
     // Filters
