@@ -189,6 +189,9 @@ fun MangaScreen(
     onMultiMarkAsReadClicked: (List<Chapter>, markAsRead: Boolean) -> Unit,
     onMarkPreviousAsReadClicked: (Chapter) -> Unit,
     onMultiDeleteClicked: (List<Chapter>) -> Unit,
+    // SY -->
+    onRenameChapter: (Chapter, String) -> Unit = { _, _ -> },
+    // SY <--
 
     // For chapter swipe
     onChapterSwipe: (ChapterList.Item, LibraryPreferences.ChapterSwipeAction) -> Unit,
@@ -399,6 +402,9 @@ private fun MangaScreenSmallImpl(
     onMultiMarkAsReadClicked: (List<Chapter>, markAsRead: Boolean) -> Unit,
     onMarkPreviousAsReadClicked: (Chapter) -> Unit,
     onMultiDeleteClicked: (List<Chapter>) -> Unit,
+    // SY -->
+    onRenameChapter: (Chapter, String) -> Unit = { _, _ -> },
+    // SY <--
 
     // For chapter swipe
     onChapterSwipe: (ChapterList.Item, LibraryPreferences.ChapterSwipeAction) -> Unit,
@@ -522,6 +528,8 @@ private fun MangaScreenSmallImpl(
             val selectedChapters = remember(chapters) {
                 chapters.filter { it.selected }
             }
+            var renameDialogChapter by remember { mutableStateOf<eu.kanade.tachiyomi.ui.manga.MangaScreenModel.ChapterList.Item?>(null) }
+
             SharedMangaBottomActionMenu(
                 selected = selectedChapters,
                 onMultiBookmarkClicked = onMultiBookmarkClicked,
@@ -530,7 +538,42 @@ private fun MangaScreenSmallImpl(
                 onDownloadChapter = onDownloadChapter,
                 onMultiDeleteClicked = onMultiDeleteClicked,
                 fillFraction = 1f,
+                // Show rename button only when a single chapter is selected and source is local
+                onRenameClicked = if (selectedChapters.size == 1 && state.source.isLocal()) {
+                    { renameDialogChapter = selectedChapters.first() }
+                } else {
+                    null
+                },
             )
+
+            // Rename dialog
+            if (renameDialogChapter != null) {
+                var newName by remember { mutableStateOf(renameDialogChapter!!.chapter.name) }
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { renameDialogChapter = null },
+                    title = { androidx.compose.material3.Text("Rename chapter") },
+                    text = {
+                        androidx.compose.foundation.layout.Column {
+                            androidx.compose.material3.OutlinedTextField(
+                                value = newName,
+                                onValueChange = { newName = it },
+                                label = { androidx.compose.material3.Text("New name") },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = {
+                            val target = renameDialogChapter!!.chapter
+                            onRenameChapter(target, newName)
+                            renameDialogChapter = null
+                        }) { androidx.compose.material3.Text("Rename") }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { renameDialogChapter = null }) { androidx.compose.material3.Text(stringResource(MR.strings.action_cancel)) }
+                    },
+                )
+            }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
@@ -986,6 +1029,8 @@ private fun MangaScreenLargeImpl(
                 val selectedChapters = remember(chapters) {
                     chapters.filter { it.selected }
                 }
+                var renameDialogChapter by remember { mutableStateOf<eu.kanade.tachiyomi.ui.manga.MangaScreenModel.ChapterList.Item?>(null) }
+
                 SharedMangaBottomActionMenu(
                     selected = selectedChapters,
                     onMultiBookmarkClicked = onMultiBookmarkClicked,
@@ -994,7 +1039,41 @@ private fun MangaScreenLargeImpl(
                     onDownloadChapter = onDownloadChapter,
                     onMultiDeleteClicked = onMultiDeleteClicked,
                     fillFraction = 0.5f,
+                    // Show rename button only when a single chapter is selected and source is local
+                    onRenameClicked = if (selectedChapters.size == 1 && state.source.isLocal()) {
+                        { renameDialogChapter = selectedChapters.first() }
+                    } else {
+                        null
+                    },
                 )
+
+                if (renameDialogChapter != null) {
+                    var dialogNewName by remember { mutableStateOf(renameDialogChapter!!.chapter.name) }
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { renameDialogChapter = null },
+                        title = { androidx.compose.material3.Text("Rename chapter") },
+                        text = {
+                            androidx.compose.foundation.layout.Column {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = dialogNewName,
+                                    onValueChange = { dialogNewName = it },
+                                    label = { androidx.compose.material3.Text("New name") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(onClick = {
+                                val target = renameDialogChapter!!.chapter
+                                onRenameChapter(target, dialogNewName)
+                                renameDialogChapter = null
+                            }) { androidx.compose.material3.Text("Rename") }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(onClick = { renameDialogChapter = null }) { androidx.compose.material3.Text(stringResource(MR.strings.action_cancel)) }
+                        },
+                    )
+                }
             }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -1273,6 +1352,9 @@ private fun SharedMangaBottomActionMenu(
     onMultiDeleteClicked: (List<Chapter>) -> Unit,
     fillFraction: Float,
     modifier: Modifier = Modifier,
+    // SY -->
+    onRenameClicked: (() -> Unit)? = null,
+    // SY <--
 ) {
     MangaBottomActionMenu(
         visible = selected.isNotEmpty(),
@@ -1302,6 +1384,9 @@ private fun SharedMangaBottomActionMenu(
         }.takeIf {
             selected.fastAny { it.downloadState == Download.State.DOWNLOADED }
         },
+        // SY -->
+        onRenameClicked = onRenameClicked,
+        // SY <--
     )
 }
 

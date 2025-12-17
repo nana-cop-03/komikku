@@ -1552,6 +1552,47 @@ class MangaScreenModel(
         }
     }
 
+    /**
+     * Rename a local source chapter and update DB.
+     */
+    fun renameLocalChapter(chapter: Chapter, newName: String) {
+        screenModelScope.launchNonCancellable {
+            try {
+                val state = successState ?: return@launchNonCancellable
+
+                val source = sourceManager.getOrStub(state.manga.source)
+
+                // Find the chapter file in the manga directory (works for local source)
+                val mangaDir = downloadProvider.findMangaDir(/* SY --> */ state.manga.ogTitle /* SY <-- */, source)
+                val oldDownload = downloadProvider.findChapterDir(chapter.name, chapter.scanlator, state.manga.ogTitle, source)
+                    ?: return@launchNonCancellable
+
+                var newNameOnDisk = downloadProvider.getChapterDirName(newName, chapter.scanlator)
+                if (oldDownload.isFile && oldDownload.extension == "cbz") newNameOnDisk += ".cbz"
+
+                if (oldDownload.name == newNameOnDisk) return@launchNonCancellable
+
+                if (oldDownload.renameTo(newNameOnDisk)) {
+                    // Update database with new name and url
+                    val newUrl = chapter.url.substringBeforeLast('/') + "/" + newNameOnDisk
+                    val chapterUpdate = tachiyomi.domain.chapter.model.ChapterUpdate(
+                        id = chapter.id,
+                        name = newName,
+                        url = newUrl,
+                    )
+                    updateChapter.await(chapterUpdate)
+
+                    // Refresh chapter list for local source
+                    if (source.isLocal()) fetchChaptersFromSource()
+                } else {
+                    context.toast("Could not rename chapter file")
+                }
+            } catch (e: Throwable) {
+                logcat(LogPriority.ERROR, e)
+            }
+        }
+    }
+
     // KMK -->
     fun clearManga(
         deleteDownload: Boolean,

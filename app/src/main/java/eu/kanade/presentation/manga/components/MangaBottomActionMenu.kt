@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Merge
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.RemoveDone
@@ -82,6 +83,9 @@ fun MangaBottomActionMenu(
     onMarkPreviousAsReadClicked: (() -> Unit)? = null,
     onDownloadClicked: (() -> Unit)? = null,
     onDeleteClicked: (() -> Unit)? = null,
+    // SY -->
+    onRenameClicked: (() -> Unit)? = null,
+    // SY <--
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -178,6 +182,17 @@ fun MangaBottomActionMenu(
                         onClick = onDeleteClicked,
                     )
                 }
+                // SY -->
+                if (onRenameClicked != null) {
+                    Button(
+                        title = "Rename",
+                        icon = Icons.Outlined.Edit,
+                        toConfirm = false,
+                        onLongClick = {},
+                        onClick = onRenameClicked,
+                    )
+                }
+                // SY <--
             }
         }
     }

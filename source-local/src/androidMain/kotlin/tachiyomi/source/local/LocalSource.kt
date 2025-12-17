@@ -425,37 +425,79 @@ actual class LocalSource(
 
     private fun convertPdfToDirectory(pdfFile: UniFile, mangaDirName: String): Format {
         try {
-            // Create a cache directory for extracted PDF images
-            val cacheDir = fileSystem.getBaseDirectory()?.findFile(mangaDirName)
-                ?.findFile(".cache")
-                ?: fileSystem.getBaseDirectory()?.findFile(mangaDirName)?.createDirectory(".cache")
-                ?: throw Exception("Failed to create cache directory")
+            val mangaDir = fileSystem.getBaseDirectory()?.findFile(mangaDirName)
+                ?: throw Exception("Manga directory not found")
 
             val pdfName = pdfFile.nameWithoutExtension
-            val extractDir = cacheDir.findFile(pdfName)
-                ?: cacheDir.createDirectory(pdfName)
-                ?: throw Exception("Failed to create extract directory")
+            val cbzName = "$pdfName.cbz"
 
-            // Check if already extracted
-            val files = extractDir.listFiles()
-            if (files?.isNotEmpty() == true && files.all { it.extension == "jpg" || it.extension == "jpeg" }) {
-                logcat { "Using cached PDF extraction for $pdfName" }
-                return Format.Directory(extractDir)
+            // If cbz already exists in the series folder, reuse it
+            val existingCbz = mangaDir.findFile(cbzName)
+            if (existingCbz != null) {
+                logcat { "Found existing CBZ $cbzName for $pdfName" }
+                return Format.Archive(existingCbz)
             }
 
-            // Extract PDF pages as images
-            logcat { "Converting PDF to images: $pdfName" }
-            pdfFile.pdfReader(context).use { pdf ->
-                val extracted = pdf.extractToDirectory(context, extractDir)
-                if (extracted > 0) {
-                    logcat { "Successfully extracted $extracted pages from PDF" }
-                    return Format.Directory(extractDir)
-                } else {
-                    throw Exception("Failed to extract any pages from PDF")
+            // Move original PDF to a hidden folder inside the manga folder
+            val hiddenDir = mangaDir.findFile(".hidden") ?: mangaDir.createDirectory(".hidden")
+                ?: throw Exception("Failed to create hidden directory")
+
+            val hiddenPdf = hiddenDir.findFile(pdfFile.name) ?: hiddenDir.createFile(pdfFile.name)?.also { target ->
+                pdfFile.openInputStream().use { input ->
+                    target.openOutputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                // Delete original after copy
+                try {
+                    pdfFile.delete()
+                } catch (_: Throwable) { /* ignore */ }
+            } ?: throw Exception("Failed to move PDF to hidden folder")
+
+            // Create CBZ in the manga directory
+            val cbzFile = mangaDir.createFile(cbzName) ?: throw Exception("Failed to create CBZ file")
+
+            logcat { "Converting PDF to CBZ: $pdfName -> $cbzName" }
+
+            // Render pages and write directly into CBZ
+            hiddenPdf.pdfReader(context).use { pdf ->
+                ZipWriter(context, cbzFile, encrypt = false).use { writer ->
+                    for (i in 0 until pdf.pageCount) {
+                        try {
+                            val bitmap = pdf.renderPage(i)
+                            val bos = java.io.ByteArrayOutputStream()
+                            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, bos)
+                            val filename = String.format("%03d.jpg", i + 1)
+                            writer.write(bos.toByteArray(), filename)
+                            bitmap.recycle()
+                        } catch (e: Exception) {
+                            logcat(LogPriority.ERROR, e) { "Error rendering page $i while creating CBZ" }
+                        }
+                    }
                 }
             }
+
+            logcat { "Successfully created CBZ $cbzName for $pdfName" }
+            return Format.Archive(cbzFile)
         } catch (e: Exception) {
-            logcat(LogPriority.ERROR, e) { "Error converting PDF to directory" }
+            logcat(LogPriority.ERROR, e) { "Error converting PDF to CBZ" }
+            // Fallback: try original behavior of extracting to a cache directory
+            try {
+                val cacheDir = fileSystem.getBaseDirectory()?.findFile(mangaDirName)
+                    ?.findFile(".cache")
+                    ?: fileSystem.getBaseDirectory()?.findFile(mangaDirName)?.createDirectory(".cache")
+                    ?: throw Exception("Failed to create cache directory")
+
+                val extractDir = cacheDir.findFile(pdfName)
+                    ?: cacheDir.createDirectory(pdfName)
+                    ?: throw Exception("Failed to create extract directory")
+
+                val extracted = pdfFile.pdfReader(context).use { pdf -> pdf.extractToDirectory(context, extractDir) }
+                if (extracted > 0) return Format.Directory(extractDir)
+            } catch (_: Throwable) {
+                // ignore fallback errors
+            }
+
             throw Exception(context.stringResource(MR.strings.local_invalid_format))
         }
     }
