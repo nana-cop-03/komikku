@@ -456,13 +456,18 @@ actual class LocalSource(
                     null
                 }
                 is Format.Pdf -> {
-                    format.file.pdfReader(context).use { pdf ->
-                        if (pdf.pageCount > 0) {
-                            val bitmap = pdf.renderPage(0)
-                            val stream = ByteArrayOutputStream()
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-                            coverManager.update(manga, ByteArrayInputStream(stream.toByteArray()))
+                    try {
+                        format.file.pdfReader(context).use { pdf ->
+                            if (pdf.pageCount > 0) {
+                                val bitmap = pdf.renderPage(0, width = 600, height = 800)
+                                val stream = ByteArrayOutputStream()
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                                bitmap.recycle()
+                                coverManager.update(manga, ByteArrayInputStream(stream.toByteArray()))
+                            }
                         }
+                    } catch (e: Exception) {
+                        logcat(LogPriority.WARN, e) { "Could not update cover from PDF: ${e.message}" }
                     }
                     null
                 }
