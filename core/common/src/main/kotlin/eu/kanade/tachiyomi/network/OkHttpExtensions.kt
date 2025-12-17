@@ -15,11 +15,11 @@ import okhttp3.Response
 import rx.Observable
 import rx.Producer
 import rx.Subscription
+import uy.kohesive.injekt.Injekt
 import java.io.IOException
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.coroutines.resumeWithException
-import uy.kohesive.injekt.Injekt
 
 val jsonMime = "application/json; charset=utf-8".toMediaType()
 
