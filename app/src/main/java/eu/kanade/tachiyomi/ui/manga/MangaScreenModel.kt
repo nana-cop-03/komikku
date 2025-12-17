@@ -1552,6 +1552,12 @@ class MangaScreenModel(
         }
     }
 
+    fun renameChapter(chapter: Chapter, newName: String) {
+        screenModelScope.launchIO {
+            updateChapter.await(ChapterUpdate(id = chapter.id, name = newName))
+        }
+    }
+
     // KMK -->
     fun clearManga(
         deleteDownload: Boolean,

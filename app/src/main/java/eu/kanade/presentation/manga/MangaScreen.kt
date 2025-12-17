@@ -422,6 +422,7 @@ private fun MangaScreenSmallImpl(
     coverRatio: MutableFloatState,
     onPaletteScreenClick: () -> Unit,
     hazeState: HazeState,
+    onRenameChapter: (Chapter, String) -> Unit,
     // KMK <--
 ) {
     val chapterListState = rememberLazyListState()
@@ -451,6 +452,10 @@ private fun MangaScreenSmallImpl(
     var offsetX by remember { mutableFloatStateOf(0f) }
     val fabPosition by uiPreferences.readButtonPosition().collectAsState()
     val readButtonPosition = uiPreferences.readButtonPosition()
+
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var chapterToRename by remember { mutableStateOf<Chapter?>(null) }
+    var renameText by remember { mutableStateOf("") }
     // KMK <--
 
     BackHandler(onBack = {
@@ -530,6 +535,11 @@ private fun MangaScreenSmallImpl(
                 onDownloadChapter = onDownloadChapter,
                 onMultiDeleteClicked = onMultiDeleteClicked,
                 fillFraction = 1f,
+                onRenameClicked = {
+                    chapterToRename = selectedChapters[0].chapter
+                    renameText = selectedChapters[0].chapter.name
+                    showRenameDialog = true
+                }.takeIf { selectedChapters.size == 1 },
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -1273,6 +1283,7 @@ private fun SharedMangaBottomActionMenu(
     onMultiDeleteClicked: (List<Chapter>) -> Unit,
     fillFraction: Float,
     modifier: Modifier = Modifier,
+    onRenameClicked: (() -> Unit)? = null,
 ) {
     MangaBottomActionMenu(
         visible = selected.isNotEmpty(),
@@ -1302,6 +1313,7 @@ private fun SharedMangaBottomActionMenu(
         }.takeIf {
             selected.fastAny { it.downloadState == Download.State.DOWNLOADED }
         },
+        onRenameClicked = onRenameClicked,
     )
 }
 

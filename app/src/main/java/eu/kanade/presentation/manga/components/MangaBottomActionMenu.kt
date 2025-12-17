@@ -82,6 +82,7 @@ fun MangaBottomActionMenu(
     onMarkPreviousAsReadClicked: (() -> Unit)? = null,
     onDownloadClicked: (() -> Unit)? = null,
     onDeleteClicked: (() -> Unit)? = null,
+    onRenameClicked: (() -> Unit)? = null,
 ) {
     AnimatedVisibility(
         visible = visible,
