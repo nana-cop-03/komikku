@@ -358,6 +358,7 @@ actual class LocalSource(
 
     // Chapters
     override suspend fun getChapterList(manga: SManga): List<SChapter> = withIOContext {
+        val mangaDir = fileSystem.getMangaDirectory(manga.url) ?: return emptyList()
         val chapters = fileSystem.getFilesInMangaDirectory(manga.url)
             // Only keep supported formats
             .filterNot { it.name.orEmpty().startsWith('.') }
@@ -368,16 +369,16 @@ actual class LocalSource(
                 val fileToUse: UniFile
                 if (originalFormat is Format.Pdf) {
                     val zipName = chapterFile.nameWithoutExtension + ".zip"
-                    val zipFile = chapterFile.parent?.findFile(zipName)
+                    val zipFile = mangaDir.findFile(zipName)
                     if (zipFile != null) {
-                        format = Format.Zip
+                        format = Format.Zip(zipFile)
                         fileToUse = zipFile
                     } else {
                         // convert
-                        val backupDir = chapterFile.parent?.createDirectory(".backupfiles_pdf") ?: chapterFile.parent!!
-                        val zipFileCreated = chapterFile.parent.createFile(zipName)!!
+                        val backupDir = mangaDir.createDirectory(".backupfiles_pdf")!!
+                        val zipFileCreated = mangaDir.createFile(zipName)!!
                         convertPdfToZip(chapterFile, zipFileCreated, backupDir)
-                        format = Format.Zip
+                        format = Format.Zip(zipFileCreated)
                         fileToUse = zipFileCreated
                     }
                 } else {
@@ -401,7 +402,7 @@ actual class LocalSource(
                             epub.fillMetadata(manga, this)
                         }
                     } else if (format !is Format.Pdf) {
-                        getComicInfoForChapter(fileToUse) { stream, /* SY --> */ _ /* SY <-- */ ->
+                        getComicInfoForChapter<Unit>(fileToUse) { stream, /* SY --> */ _ /* SY <-- */ ->
                             setChapterDetailsFromComicInfoFile(stream, this)
                         }
                     }
@@ -423,7 +424,7 @@ actual class LocalSource(
 
     private suspend fun convertPdfToZip(pdfFile: UniFile, zipFile: UniFile, backupDir: UniFile) = withIOContext {
         val tempDir = File(context.cacheDir, "pdf_temp").apply { mkdirs() }
-        pdfReader(context).use { pdf ->
+        pdfReader(pdfFile, context).use { pdf ->
             val images = mutableListOf<File>()
             for (i in 0 until pdf.pageCount) {
                 val bitmap = pdf.renderPage(i, width = 1200, height = 1600)
@@ -444,7 +445,8 @@ actual class LocalSource(
             tempDir.deleteRecursively()
         }
         // move pdf to backup
-        pdfFile.moveTo(backupDir.createFile(pdfFile.name)!!)
+        val backupFile = backupDir.createFile(pdfFile.name)!!
+        pdfFile.moveTo(backupFile)
     }
 
     // Filters
