@@ -448,7 +448,11 @@ actual class LocalSource(
         }
         // move pdf to backup
         val backupFile = backupDir.createFile(pdfFile.name)!!
-        pdfFile.copyTo(backupFile)
+        pdfFile.openInputStream().use { input ->
+            backupFile.openOutputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
         pdfFile.delete()
     }
 
