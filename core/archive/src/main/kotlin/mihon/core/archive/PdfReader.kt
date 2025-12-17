@@ -53,6 +53,3 @@ class PdfReader(private val parcelFileDescriptor: ParcelFileDescriptor) : Closea
         parcelFileDescriptor.close()
     }
 }
-
-// Extension for UniFile
-fun UniFile.pdfReader(context: Context) = PdfReader(openFileDescriptor(context, "r"))
