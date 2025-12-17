@@ -197,6 +197,7 @@ fun MangaScreen(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
+    onRenameChapter: (Chapter, String) -> Unit,
 
     // KMK -->
     getMangaState: @Composable (Manga) -> State<Manga>,
@@ -267,6 +268,7 @@ fun MangaScreen(
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
             onInvertSelection = onInvertSelection,
+            onRenameChapter = onRenameChapter,
             // KMK -->
             getMangaState = getMangaState,
             onClickSourceSettingsClicked = onClickSourceSettingsClicked,
@@ -329,6 +331,7 @@ fun MangaScreen(
             onChapterSelected = onChapterSelected,
             onAllChapterSelected = onAllChapterSelected,
             onInvertSelection = onInvertSelection,
+            onRenameChapter = onRenameChapter,
             // KMK -->
             getMangaState = getMangaState,
             onClickSourceSettingsClicked = onClickSourceSettingsClicked,
@@ -886,6 +889,7 @@ private fun MangaScreenLargeImpl(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onAllChapterSelected: (Boolean) -> Unit,
     onInvertSelection: () -> Unit,
+    onRenameChapter: (Chapter, String) -> Unit,
 
     // KMK -->
     getMangaState: @Composable ((Manga) -> State<Manga>),
