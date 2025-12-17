@@ -10,7 +10,6 @@ import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import mihon.core.archive.archiveReader
 import mihon.core.archive.epubReader
-import mihon.core.archive.pdfReader
 import tachiyomi.core.common.i18n.stringResource
 import tachiyomi.core.common.util.lang.withIOContext
 import tachiyomi.core.common.util.system.logcat
@@ -132,7 +131,7 @@ class ChapterLoader(
                             is Format.Directory -> DirectoryPageLoader(format.file)
                             is Format.Archive -> ArchivePageLoader(format.file.archiveReader(context))
                             is Format.Epub -> EpubPageLoader(format.file.epubReader(context))
-                            is Format.Pdf -> PdfPageLoader(format.file.pdfReader(context))
+                            is Format.Pdf -> error("PDF should be converted to Directory format")
                         }
                     }
                     else -> error(context.stringResource(MR.strings.loader_not_implemented_error))
@@ -151,7 +150,7 @@ class ChapterLoader(
                     is Format.Directory -> DirectoryPageLoader(format.file)
                     is Format.Archive -> ArchivePageLoader(format.file.archiveReader(context))
                     is Format.Epub -> EpubPageLoader(format.file.epubReader(context))
-                    is Format.Pdf -> PdfPageLoader(format.file.pdfReader(context))
+                    is Format.Pdf -> error("PDF should be converted to Directory format")
                 }
             }
             source is HttpSource -> HttpPageLoader(chapter, source)

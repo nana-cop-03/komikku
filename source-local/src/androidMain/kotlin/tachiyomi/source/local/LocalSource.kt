@@ -1,7 +1,6 @@
 package tachiyomi.source.local
 
 import android.content.Context
-import android.graphics.Bitmap
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.Source
@@ -46,8 +45,6 @@ import tachiyomi.source.local.io.Format
 import tachiyomi.source.local.io.LocalSourceFileSystem
 import tachiyomi.source.local.metadata.fillMetadata
 import uy.kohesive.injekt.injectLazy
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import kotlin.time.Duration.Companion.days
@@ -406,15 +403,60 @@ actual class LocalSource(
     fun getFormat(chapter: SChapter): Format {
         try {
             val (mangaDirName, chapterName) = chapter.url.split('/', limit = 2)
-            return fileSystem.getBaseDirectory()
+            val chapterFile = fileSystem.getBaseDirectory()
                 ?.findFile(mangaDirName)
                 ?.findFile(chapterName)
-                ?.let(Format.Companion::valueOf)
                 ?: throw Exception(context.stringResource(MR.strings.chapter_not_found))
+
+            val format = Format.valueOf(chapterFile)
+
+            // Convert PDFs to image directories to avoid threading issues
+            if (format is Format.Pdf) {
+                return convertPdfToDirectory(chapterFile, mangaDirName)
+            }
+
+            return format
         } catch (e: Format.UnknownFormatException) {
             throw Exception(context.stringResource(MR.strings.local_invalid_format))
         } catch (e: Exception) {
             throw e
+        }
+    }
+
+    private fun convertPdfToDirectory(pdfFile: UniFile, mangaDirName: String): Format {
+        try {
+            // Create a cache directory for extracted PDF images
+            val cacheDir = fileSystem.getBaseDirectory()?.findFile(mangaDirName)
+                ?.findFile(".cache")
+                ?: fileSystem.getBaseDirectory()?.findFile(mangaDirName)?.createDirectory(".cache")
+                ?: throw Exception("Failed to create cache directory")
+
+            val pdfName = pdfFile.nameWithoutExtension
+            val extractDir = cacheDir.findFile(pdfName)
+                ?: cacheDir.createDirectory(pdfName)
+                ?: throw Exception("Failed to create extract directory")
+
+            // Check if already extracted
+            val files = extractDir.listFiles()
+            if (files?.isNotEmpty() == true && files.all { it.extension == "jpg" || it.extension == "jpeg" }) {
+                logcat { "Using cached PDF extraction for $pdfName" }
+                return Format.Directory(extractDir)
+            }
+
+            // Extract PDF pages as images
+            logcat { "Converting PDF to images: $pdfName" }
+            pdfFile.pdfReader(context).use { pdf ->
+                val extracted = pdf.extractToDirectory(context, extractDir)
+                if (extracted > 0) {
+                    logcat { "Successfully extracted $extracted pages from PDF" }
+                    return Format.Directory(extractDir)
+                } else {
+                    throw Exception("Failed to extract any pages from PDF")
+                }
+            }
+        } catch (e: Exception) {
+            logcat(LogPriority.ERROR, e) { "Error converting PDF to directory" }
+            throw Exception(context.stringResource(MR.strings.local_invalid_format))
         }
     }
 
@@ -452,22 +494,6 @@ actual class LocalSource(
                         val entry = epub.getImagesFromPages().firstOrNull()
 
                         entry?.let { coverManager.update(manga, epub.getInputStream(it)!!) }
-                    }
-                    null
-                }
-                is Format.Pdf -> {
-                    try {
-                        format.file.pdfReader(context).use { pdf ->
-                            if (pdf.pageCount > 0) {
-                                val bitmap = pdf.renderPage(0, width = 600, height = 800)
-                                val stream = ByteArrayOutputStream()
-                                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-                                bitmap.recycle()
-                                coverManager.update(manga, ByteArrayInputStream(stream.toByteArray()))
-                            }
-                        }
-                    } catch (e: Exception) {
-                        logcat(LogPriority.WARN, e) { "Could not update cover from PDF: ${e.message}" }
                     }
                     null
                 }
