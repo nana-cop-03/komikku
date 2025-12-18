@@ -976,7 +976,7 @@ class MangaScreenModel(
                 setDataAndType(mangaDir.uri, DocumentsContract.Document.MIME_TYPE_DIR)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 // Use MT File Manager instead of default
-                setPackage("bin.mt.plus")
+                setPackage("bin.mt.plus.canary")
             }
             context.startActivity(intent)
         } catch (e: Exception) {
@@ -1605,14 +1605,38 @@ class MangaScreenModel(
 
                     // Get old chapter directory name(s)
                     val oldChapterNames = downloadProvider.getValidChapterDirNames(chapter.name, chapter.scanlator)
-                    val oldChapterDir = oldChapterNames.asSequence()
+                    var oldChapterDir = oldChapterNames.asSequence()
                         .mapNotNull { mangaDir.findFile(it) }
-                        .firstOrNull() ?: return@launchIO
+                        .firstOrNull()
+
+                    // Also check for other archive formats (.zip, .pdf, .epub) if not found
+                    if (oldChapterDir == null) {
+                        val baseName = downloadProvider.getChapterDirName(chapter.name, chapter.scanlator)
+                        val archiveExtensions = listOf(".zip", ".pdf", ".epub")
+                        oldChapterDir = archiveExtensions.asSequence()
+                            .map { "$baseName$it" }
+                            .mapNotNull { mangaDir.findFile(it) }
+                            .firstOrNull()
+                    }
+
+                    // Last resort: search for any file/folder starting with the base name
+                    if (oldChapterDir == null) {
+                        val baseName = downloadProvider.getChapterDirName(chapter.name, chapter.scanlator)
+                        oldChapterDir = mangaDir.listFiles()?.find { file ->
+                            file.name?.startsWith(baseName) == true
+                        }
+                    }
+
+                    if (oldChapterDir == null) return@launchIO
 
                     // Generate new chapter directory name
                     var newChapterDirName = downloadProvider.getChapterDirName(newName, chapter.scanlator)
-                    if (oldChapterDir.isFile && oldChapterDir.name?.endsWith(".cbz") == true) {
-                        newChapterDirName += ".cbz"
+                    if (oldChapterDir.isFile) {
+                        // Preserve the file extension
+                        val extension = oldChapterDir.name?.substringAfterLast(".", "")
+                        if (!extension.isNullOrEmpty()) {
+                            newChapterDirName += ".$extension"
+                        }
                     }
 
                     // Rename the file/folder
