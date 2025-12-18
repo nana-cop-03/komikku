@@ -461,7 +461,7 @@ actual class LocalSource(
             val chapterFile = fileSystem.getBaseDirectory()
                 ?.findFile(mangaDirName)
                 ?.findFile(chapterName)
-            
+
             if (chapterFile == null) {
                 logcat(LogPriority.WARN) { "Chapter file not found: $chapterName, attempting to find similar files..." }
                 // Try to find a file with a similar name (for cases where conversion might have renamed the file)
@@ -477,7 +477,7 @@ actual class LocalSource(
                 }
                 throw Exception(context.stringResource(MR.strings.chapter_not_found))
             }
-            
+
             return Format.valueOf(chapterFile)
         } catch (e: Format.UnknownFormatException) {
             throw Exception(context.stringResource(MR.strings.local_invalid_format))

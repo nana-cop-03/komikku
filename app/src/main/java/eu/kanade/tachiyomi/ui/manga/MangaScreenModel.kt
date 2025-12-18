@@ -517,20 +517,20 @@ class MangaScreenModel(
                                 val chapterFile = mangaDir.findFile(chapter.name + ".pdf") ?: continue
                                 val zipName = chapter.name + ".zip"
                                 var zipFile = mangaDir.findFile(zipName)
-                                
+
                                 // Clean up incomplete conversions (e.g., if user exited during conversion)
                                 if (zipFile != null && zipFile.length() == 0L) {
                                     logcat(LogPriority.WARN) { "Found incomplete conversion for ${chapter.name}, removing..." }
                                     zipFile.delete()
                                     zipFile = null
                                 }
-                                
+
                                 if (zipFile == null) {
                                     val backupDir = mangaDir.createDirectory(".backupfiles_pdf") ?: mangaDir
                                     val zipFileCreated = mangaDir.createFile(zipName) ?: continue
                                     conversionProgress[chapter.id] = 0
                                     updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADING, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
-                                    
+
                                     try {
                                         source.convertPdfToZip(chapterFile, zipFileCreated, backupDir) { current, total ->
                                             conversionProgress[chapter.id] = (current * 100 / total).coerceIn(0, 100)
