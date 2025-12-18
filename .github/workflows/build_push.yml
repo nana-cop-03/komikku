@@ -33,10 +33,11 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Write config placeholders
+      - name: Write optional Firebase stubs
         run: |
-          echo '{}' > app/google-services.json
-          echo '{}' > app/src/main/assets/client_secrets.json
+          mkdir -p app/src/main/assets
+          [ -f app/google-services.json ] || echo '{}' > app/google-services.json
+          [ -f app/src/main/assets/client_secrets.json ] || echo '{}' > app/src/main/assets/client_secrets.json
 
       - name: Decode keystore
         run: |
