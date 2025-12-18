@@ -2,6 +2,8 @@ package tachiyomi.source.local
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.source.CatalogueSource
 import eu.kanade.tachiyomi.source.Source
@@ -417,29 +419,57 @@ actual class LocalSource(
         pdfFile.pdfReader(context).use { pdf ->
             val images = mutableListOf<File>()
             for (i in 0 until pdf.pageCount) {
-                val bitmap = pdf.renderPage(i, width = 1200, height = 1600)
+                // Render PDF page to bitmap with only width specified (height auto-calculated)
+                val renderedBitmap = pdf.renderPage(i, width = 1500)
+
+                // Create a white canvas-backed bitmap to fix black page issue
+                val whiteBitmap = Bitmap.createBitmap(
+                    renderedBitmap.width,
+                    renderedBitmap.height,
+                    Bitmap.Config.ARGB_8888,
+                )
+
+                // Draw white background first
+                val canvas = Canvas(whiteBitmap)
+                canvas.drawColor(Color.WHITE)
+
+                // Draw the rendered PDF page on top
+                canvas.drawBitmap(renderedBitmap, 0f, 0f, null)
+
+                // Clean up intermediate bitmap
+                renderedBitmap.recycle()
+
                 val digitCount = pdf.pageCount.toString().length.coerceAtLeast(3)
                 val pageNumber = "%0${digitCount}d".format(Locale.ENGLISH, i + 1)
-                val imageFile = File(tempDir, "$pageNumber.jpg")
+                val imageFile = File(tempDir, "$pageNumber.png")
+
+                // Save as PNG for better quality and transparency handling
                 FileOutputStream(imageFile).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    whiteBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                 }
+
+                // Clean up final bitmap
+                whiteBitmap.recycle()
+
                 images.add(imageFile)
                 onProgress(i + 1, pdf.pageCount)
             }
+
             ZipOutputStream(zipFile.openOutputStream()).use { zipOut ->
                 images.forEachIndexed { index, file ->
                     val digitCount = pdf.pageCount.toString().length.coerceAtLeast(3)
                     val pageNumber = "%0${digitCount}d".format(Locale.ENGLISH, index + 1)
-                    zipOut.putNextEntry(ZipEntry("$pageNumber.jpg"))
+                    zipOut.putNextEntry(ZipEntry("$pageNumber.png"))
                     file.inputStream().use { it.copyTo(zipOut) }
                     zipOut.closeEntry()
                 }
             }
-            // clean temp
+
+            // Clean temp
             tempDir.deleteRecursively()
         }
-        // move pdf to backup
+
+        // Move PDF to backup
         val backupFile = backupDir.createFile(pdfFile.name)!!
         pdfFile.openInputStream().use { input ->
             backupFile.openOutputStream().use { output ->

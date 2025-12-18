@@ -338,6 +338,9 @@ object SettingsDataScreen : SearchableSettings {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
         val libraryPreferences = remember { Injekt.get<LibraryPreferences>() }
+        // KMK -->
+        val uiPreferences = remember { Injekt.get<eu.kanade.domain.ui.UiPreferences>() }
+        // KMK <--
 
         val chapterCache = remember { Injekt.get<ChapterCache>() }
         var cacheReadableSizeSema by remember { mutableIntStateOf(0) }
@@ -402,6 +405,18 @@ object SettingsDataScreen : SearchableSettings {
                     },
                 ),
                 // SY <--
+                // KMK -->
+                Preference.PreferenceItem.ListPreference(
+                    preference = uiPreferences.fileManagerPackage(),
+                    entries = persistentMapOf(
+                        "system" to stringResource(MR.strings.action_default),
+                        "bin.mt.plus" to "MT File Manager",
+                        "bin.mt.plus.canary" to "MT File Manager (Canary)",
+                    ),
+                    title = "File Manager",
+                    subtitle = "Choose which file manager to open folders",
+                ),
+                // KMK <--
                 Preference.PreferenceItem.SwitchPreference(
                     preference = libraryPreferences.autoClearChapterCache(),
                     title = stringResource(MR.strings.pref_auto_clear_chapter_cache),
@@ -638,8 +653,13 @@ object SettingsDataScreen : SearchableSettings {
             Preference.PreferenceItem.TextPreference(
                 title = stringResource(SYMR.strings.pref_google_drive_sign_in),
                 onClick = {
-                    val intent = googleDriveSync.getSignInIntent()
-                    context.startActivity(intent)
+                    try {
+                        val intent = googleDriveSync.getSignInIntent()
+                        context.startActivity(intent)
+                    } catch (e: Exception) {
+                        logcat(LogPriority.ERROR, e) { "Failed to start Google Drive sign-in" }
+                        context.toast("Failed to open Google Drive sign-in. Please check your internet connection.")
+                    }
                 },
             ),
             getGoogleDrivePurge(),
