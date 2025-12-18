@@ -236,3 +236,31 @@ jobs:
           draft: true
           prerelease: false
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Send Release APKs to Telegram
+        if: success()
+        run: |
+          chmod +x scripts/send-to-telegram.sh
+          
+          # Send universal APK
+          if [ -f "Nana-Comik-${{ needs.prepare-build.outputs.VERSION_TAG }}.apk" ]; then
+            ./scripts/send-to-telegram.sh \
+              "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+              "${{ secrets.TELEGRAM_CHAT_ID }}" \
+              "Nana-Comik-${{ needs.prepare-build.outputs.VERSION_TAG }}.apk" \
+              "${{ needs.prepare-build.outputs.VERSION_TAG }}" \
+              "release-universal"
+          fi
+          
+          # Send arm64-v8a APK
+          if [ -f "Nana-Comik-arm64-v8a-${{ needs.prepare-build.outputs.VERSION_TAG }}.apk" ]; then
+            ./scripts/send-to-telegram.sh \
+              "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+              "${{ secrets.TELEGRAM_CHAT_ID }}" \
+              "Nana-Comik-arm64-v8a-${{ needs.prepare-build.outputs.VERSION_TAG }}.apk" \
+              "${{ needs.prepare-build.outputs.VERSION_TAG }}" \
+              "release-arm64-v8a"
+          fi
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}

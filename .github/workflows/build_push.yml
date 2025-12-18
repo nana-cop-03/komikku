@@ -104,3 +104,17 @@ jobs:
         with:
           name: mapping-${{ github.sha }}
           path: app/build/outputs/mapping/preview
+
+      - name: Send APK to Telegram
+        if: success()
+        run: |
+          chmod +x scripts/send-to-telegram.sh
+          ./scripts/send-to-telegram.sh \
+            "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            "${{ secrets.TELEGRAM_CHAT_ID }}" \
+            "Nana-Comik-${{ steps.current_commit.outputs.VERSION_TAG }}-r${{ steps.current_commit.outputs.COMMIT_COUNT }}.apk" \
+            "${{ steps.current_commit.outputs.VERSION_TAG }}" \
+            "${{ steps.current_commit.outputs.COMMIT_COUNT }}"
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
