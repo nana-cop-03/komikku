@@ -657,8 +657,6 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                     }
                 },
                 onClickShiftPage = ::shiftDoublePages,
-                // KMK --> Add save image callback
-                onSaveImage = { viewModel.saveCurrentPage() },
                 // KMK --> Add autoscroll
                 isAutoscrollEnabled = isAutoscrollEnabled,
                 onToggleAutoscroll = { scrollTimer.setActive(!isAutoscrollEnabled) },

@@ -119,7 +119,7 @@ fun BottomReaderBar(
                     } else {
                         Icons.Outlined.Timer
                     },
-                    contentDescription = stringResource(SYMR.strings.autoscroll),
+                    contentDescription = "Autoscroll",
                     tint = if (isAutoscrollEnabled) {
                         MaterialTheme.colorScheme.primary
                     } else {

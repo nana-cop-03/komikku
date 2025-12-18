@@ -1494,13 +1494,15 @@ class ReaderViewModel @JvmOverloads constructor(
 
     // KMK --> Helper function for reading statistics
     fun getReadingStats(): Pair<Int, Int>? {
-        val chapters = state.value.viewerChapters?.currChapter?.let { currChapter ->
-            val allChapters = state.value.viewerChapters?.flatten() ?: return null
-            val readChapters = allChapters.count { it.read }
-            val totalChapters = allChapters.size
-            return Pair(readChapters, totalChapters)
-        }
-        return chapters
+        val chapters = state.value.viewerChapters ?: return null
+        val prevChapter = chapters.prevChapter
+        val currChapter = chapters.currChapter
+        val nextChapter = chapters.nextChapter
+        val allChapters = listOfNotNull(prevChapter, currChapter, nextChapter)
+        if (allChapters.isEmpty()) return null
+        val readChapters = allChapters.count { it.read }
+        val totalChapters = allChapters.size
+        return Pair(readChapters, totalChapters)
     }
     // KMK <--
 

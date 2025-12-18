@@ -225,7 +225,7 @@ fun ReaderAppBars(
                             // KMK --> Add reading progress
                             readingStats?.let { (read, total) ->
                                 append(" • ")
-                                append(stringResource(MR.strings.chapter_progress_with_number, read, total))
+                                append("$read/$total")
                             }
                             // KMK <--
                         },
