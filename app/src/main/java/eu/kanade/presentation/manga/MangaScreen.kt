@@ -929,6 +929,9 @@ private fun MangaScreenSmallImpl(
                         onChapterSelected = onChapterSelected,
                         onChapterSwipe = onChapterSwipe,
                         onChapterItemClick = ::onChapterItemClick,
+                        // KMK -->
+                        source = state.source,
+                        // KMK <--
                     )
                 }
             }
@@ -1409,6 +1412,9 @@ private fun MangaScreenLargeImpl(
                                 onChapterSelected = onChapterSelected,
                                 onChapterSwipe = onChapterSwipe,
                                 onChapterItemClick = ::onChapterItemClickFunction,
+                                // KMK -->
+                                source = state.source,
+                                // KMK <--
                             )
                         }
                     }
@@ -1477,6 +1483,9 @@ private fun LazyListScope.sharedChapterItems(
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onChapterSwipe: (ChapterList.Item, LibraryPreferences.ChapterSwipeAction) -> Unit,
     onChapterItemClick: (ChapterList.Item, Boolean, (Boolean) -> Unit, (Chapter) -> Unit) -> Unit,
+    // KMK -->
+    source: Source,
+    // KMK <--
 ) {
     items(
         items = chapters,
@@ -1564,7 +1573,7 @@ private fun LazyListScope.sharedChapterItems(
                         onChapterSwipe(item, it)
                     },
                     // KMK -->
-                    formatType = getChapterFormatType(item.chapter.url, item.chapter.name, state.source.isLocal()),
+                    formatType = getChapterFormatType(item.chapter.url, item.chapter.name, source.isLocal()),
                     // KMK <--
                 )
             }

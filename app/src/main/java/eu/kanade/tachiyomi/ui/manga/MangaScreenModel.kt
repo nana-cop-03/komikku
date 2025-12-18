@@ -995,11 +995,11 @@ class MangaScreenModel(
             if (currentManga == null || currentSource == null || currentSource is StubSource) return
 
             val mangaDir = downloadProvider.findMangaDir(/* SY --> */ currentManga.ogTitle /* SY <-- */, currentSource) ?: return
+            val fileManagerPackage = uiPreferences.fileManagerPackage().get()
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(mangaDir.uri, DocumentsContract.Document.MIME_TYPE_DIR)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 // Use selected file manager from preferences only if not set to system default
-                val fileManagerPackage = uiPreferences.fileManagerPackage().get()
                 if (fileManagerPackage.isNotEmpty() && fileManagerPackage != "system") {
                     setPackage(fileManagerPackage)
                 }
