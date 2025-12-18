@@ -39,12 +39,17 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("nanacomik.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "nanacomik123"
-            keyAlias = System.getenv("KEY_ALIAS") ?: "nanacomik"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "nanacomik123"
+            if (project.hasProperty("enableReleaseSigning")) {
+                storeFile = file("nanacomik.keystore")
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
         }
     }
+
+
+
 
     buildTypes {
         val debug by getting {
@@ -78,7 +83,10 @@ android {
             initWith(release)
 
             applicationIdSuffix = ".foss"
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig =
+            if (project.hasProperty("enableReleaseSigning"))
+                signingConfigs.getByName("release")
+            else null
 
             matchingFallbacks.addAll(commonMatchingFallbacks)
         }
@@ -86,14 +94,19 @@ android {
             initWith(release)
 
             applicationIdSuffix = ".beta"
-
             versionNameSuffix = debug.versionNameSuffix
-            signingConfig = signingConfigs.getByName("release")
+
+            signingConfig = null   // ✅ KEY FIX
 
             matchingFallbacks.addAll(commonMatchingFallbacks)
 
-            buildConfigField("String", "BUILD_TIME", "\"${getBuildTime(useLastCommitTime = false)}\"")
+            buildConfigField(
+                "String",
+                "BUILD_TIME",
+                "\"${getBuildTime(useLastCommitTime = false)}\""
+            )
         }
+
         create("benchmark") {
             initWith(release)
 
