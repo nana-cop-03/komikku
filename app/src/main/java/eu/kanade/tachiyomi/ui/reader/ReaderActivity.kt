@@ -743,53 +743,70 @@ class ReaderActivity : BaseActivity() {
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            // Speed slider (0.5 - 5.0 seconds)
-                            val currentSpeed = state.ehAutoscrollFreq.toFloatOrNull() ?: 2.0f
-                            var sliderValue by remember { mutableStateOf(currentSpeed) }
-
+                            // Speed slider (0.0 - 1.0, displayed as 0.1x - 11.0x like Kotatsu)
+                            val currentSpeed = state.ehAutoscrollFreq.toFloatOrNull() ?: 0.5f
+                            var sliderValue by remember { mutableStateOf(currentSpeed.coerceIn(0f, 1f)) }
+                            
+                            // Display speed multiplier (0.1x to 11.0x)
+                            val displaySpeed = 0.1f + (sliderValue * 10.9f)
+                            
                             Text(
-                                text = stringResource(SYMR.strings.eh_autoscroll) + ": ${String.format("%.1f", sliderValue)}s",
+                                text = stringResource(SYMR.strings.eh_autoscroll) + ": ${String.format("%.1f", displaySpeed)}x",
                                 style = MaterialTheme.typography.labelMedium,
                             )
-
+                            
                             androidx.compose.material3.Slider(
                                 value = sliderValue,
-                                onValueChange = {
+                                onValueChange = { 
                                     sliderValue = it
-                                    viewModel.setAutoScrollFrequency(String.format("%.1f", it))
+                                    viewModel.setAutoScrollFrequency(String.format("%.3f", it))
                                 },
-                                valueRange = 0.5f..5.0f,
-                                steps = 8,
+                                valueRange = 0f..1f,
+                                steps = 99,  // 100 steps for smooth control (0.01 increments)
                                 modifier = Modifier.fillMaxWidth(),
                             )
-
-                            // Preset buttons
+                            
+                            // Preset buttons with speed multipliers
                             Text(
                                 text = "Presets:",
                                 style = MaterialTheme.typography.labelSmall,
                             )
-
+                            
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                listOf(0.5f, 1.0f, 1.5f, 2.0f, 3.0f, 4.0f, 5.0f).forEach { preset ->
+                                // Speed presets (0.1x to 11.0x converted to 0.0-1.0 scale)
+                                listOf(
+                                    0.1f to "0.1x",
+                                    0.5f to "0.5x", 
+                                    1.0f to "1.0x",
+                                    2.0f to "2.0x",
+                                    3.0f to "3.0x",
+                                    5.0f to "5.0x",
+                                    7.0f to "7.0x",
+                                    10.0f to "10.0x",
+                                    11.0f to "11.0x",
+                                ).forEach { (displayValue, label) ->
+                                    // Convert display value (0.1-11.0) back to 0.0-1.0 scale
+                                    val scaleValue = (displayValue - 0.1f) / 10.9f
                                     androidx.compose.material3.AssistChip(
                                         onClick = {
-                                            sliderValue = preset
-                                            viewModel.setAutoScrollFrequency(String.format("%.1f", preset))
+                                            sliderValue = scaleValue
+                                            viewModel.setAutoScrollFrequency(String.format("%.3f", scaleValue))
                                         },
-                                        label = { Text("${preset}s") },
+                                        label = { Text(label) },
                                         modifier = Modifier.padding(4.dp),
                                     )
                                 }
                             }
-
+                            
                             // Info text
                             Text(
-                                text = stringResource(SYMR.strings.eh_autoscroll_help_message),
+                                text = stringResource(SYMR.strings.eh_autoscroll_help_message) + 
+                                    "\n\nTip: Lower values = slower scroll, Higher values = faster scroll",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
