@@ -930,6 +930,7 @@ private fun MangaScreenSmallImpl(
                         onDownloadChapter = onDownloadChapter,
                         onChapterSelected = onChapterSelected,
                         onChapterSwipe = onChapterSwipe,
+                        onChapterItemClick = ::onChapterItemClick,
                     )
                 }
             }
@@ -1060,6 +1061,19 @@ private fun MangaScreenLargeImpl(
     val fabPosition by uiPreferences.readButtonPosition().collectAsState()
     val readButtonPosition = uiPreferences.readButtonPosition()
     // KMK <--
+
+    fun onChapterItemClickFunction(
+        chapterItem: ChapterList.Item,
+        isAnyChapterSelected: Boolean,
+        onToggleSelection: (Boolean) -> Unit,
+        onChapterClicked: (Chapter) -> Unit,
+    ) {
+        when {
+            chapterItem.selected -> onToggleSelection(false)
+            isAnyChapterSelected -> onToggleSelection(true)
+            else -> onChapterClicked(chapterItem.chapter)
+        }
+    }
 
     val insetPadding = WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).asPaddingValues()
     var topBarHeight by remember { mutableIntStateOf(0) }
@@ -1394,6 +1408,7 @@ private fun MangaScreenLargeImpl(
                                 onDownloadChapter = onDownloadChapter,
                                 onChapterSelected = onChapterSelected,
                                 onChapterSwipe = onChapterSwipe,
+                                onChapterItemClick = onChapterItemClickFunction,
                             )
                         }
                     }
@@ -1461,6 +1476,7 @@ private fun LazyListScope.sharedChapterItems(
     onDownloadChapter: ((List<ChapterList.Item>, ChapterDownloadAction) -> Unit)?,
     onChapterSelected: (ChapterList.Item, Boolean, Boolean, Boolean) -> Unit,
     onChapterSwipe: (ChapterList.Item, LibraryPreferences.ChapterSwipeAction) -> Unit,
+    onChapterItemClick: (ChapterList.Item, Boolean, (Boolean) -> Unit, (Chapter) -> Unit) -> Unit,
 ) {
     items(
         items = chapters,
