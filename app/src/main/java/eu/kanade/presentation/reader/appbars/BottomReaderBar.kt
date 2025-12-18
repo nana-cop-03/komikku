@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Download
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +61,9 @@ fun BottomReaderBar(
     bookmarked: Boolean = false,
     onToggleBookmarked: (() -> Unit)? = null,
     onSaveImage: (() -> Unit)? = null,
+    // KMK --> Add autoscroll
+    isAutoscrollEnabled: Boolean = false,
+    onToggleAutoscroll: (() -> Unit)? = null,
     // KMK <--
     // SY <--
 ) {
@@ -104,6 +109,26 @@ fun BottomReaderBar(
                 )
             }
         }
+
+        // KMK --> Autoscroll button
+        if (ReaderBottomButton.Autoscroll.isIn(enabledButtons) && onToggleAutoscroll != null) {
+            IconButton(onClick = onToggleAutoscroll) {
+                Icon(
+                    imageVector = if (isAutoscrollEnabled) {
+                        Icons.Filled.Timer
+                    } else {
+                        Icons.Outlined.Timer
+                    },
+                    contentDescription = stringResource(SYMR.strings.autoscroll),
+                    tint = if (isAutoscrollEnabled) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        iconColor
+                    },
+                )
+            }
+        }
+        // KMK <--
         // KMK <--
 
         // SY -->

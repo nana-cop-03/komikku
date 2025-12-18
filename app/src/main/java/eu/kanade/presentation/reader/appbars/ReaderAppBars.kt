@@ -83,8 +83,9 @@ fun ReaderAppBars(
     onOpenInWebView: (() -> Unit)?,
     onOpenInBrowser: (() -> Unit)?,
     onShare: (() -> Unit)?,
-    // KMK --> Add save image callback
+    // KMK --> Add save image callback and metadata
     onSaveImage: (() -> Unit)? = null,
+    readingStats: Pair<Int, Int>? = null,
     // KMK <--
 
     viewer: Viewer?,
@@ -119,6 +120,10 @@ fun ReaderAppBars(
     onClickChapterList: () -> Unit,
     onClickPageLayout: () -> Unit,
     onClickShiftPage: () -> Unit,
+    // KMK --> Add autoscroll
+    isAutoscrollEnabled: Boolean = false,
+    onToggleAutoscroll: (() -> Unit)? = null,
+    // KMK <--
     // SY <--
 ) {
     val isRtl = viewer is R2LPagerViewer
@@ -215,7 +220,15 @@ fun ReaderAppBars(
                             .clickable(onClick = onClickTopAppBar),
                         backgroundColor = backgroundColor,
                         title = mangaTitle,
-                        subtitle = chapterTitle,
+                        subtitle = buildString {
+                            append(chapterTitle)
+                            // KMK --> Add reading progress
+                            readingStats?.let { (read, total) ->
+                                append(" • ")
+                                append(stringResource(MR.strings.chapter_progress_with_number, read, total))
+                            }
+                            // KMK <--
+                        },
                         navigateUp = navigateUp,
                         actions = {
                             AppBarActions(
@@ -340,6 +353,9 @@ fun ReaderAppBars(
                         bookmarked = bookmarked,
                         onToggleBookmarked = onToggleBookmarked,
                         onSaveImage = onSaveImage,
+                        // KMK --> Add autoscroll
+                        isAutoscrollEnabled = isAutoscrollEnabled,
+                        onToggleAutoscroll = onToggleAutoscroll,
                         // KMK <--
                         // SY <--
                     )

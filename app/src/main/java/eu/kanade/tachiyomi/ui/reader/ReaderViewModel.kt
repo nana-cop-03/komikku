@@ -1167,6 +1167,49 @@ class ReaderViewModel @JvmOverloads constructor(
     }
 
     /**
+     * Saves the current page directly from the reader (bottom bar button).
+     */
+    fun saveCurrentPage() {
+        val currentPageIndex = state.value.currentPage
+        val page = state.value.viewerChapters?.currChapter?.pages?.getOrNull(currentPageIndex) as? ReaderPage
+        if (page?.status != Page.State.Ready) return
+        val manga = manga ?: return
+
+        val context = Injekt.get<Application>()
+        val notifier = SaveImageNotifier(context)
+        notifier.onClear()
+
+        val filename = generateFilename(manga, page)
+
+        // Pictures directory.
+        val relativePath = if (readerPreferences.folderPerManga().get()) {
+            DiskUtil.buildValidFilename(manga.title)
+        } else {
+            ""
+        }
+
+        // Copy file in background.
+        viewModelScope.launchNonCancellable {
+            try {
+                val uri = imageSaver.save(
+                    image = Image.Page(
+                        inputStream = page.stream!!,
+                        name = filename,
+                        location = Location.Pictures.create(relativePath),
+                    ),
+                )
+                withUIContext {
+                    notifier.onComplete(uri)
+                    eventChannel.send(Event.SavedImage(SaveImageResult.Success(uri)))
+                }
+            } catch (e: Throwable) {
+                notifier.onError(e.message)
+                eventChannel.send(Event.SavedImage(SaveImageResult.Error(e)))
+            }
+        }
+    }
+
+    /**
      * Saves the image of the selected page on the pictures directory and notifies the UI of the result.
      * There's also a notification to allow sharing the image somewhere else or deleting it.
      */
@@ -1448,6 +1491,18 @@ class ReaderViewModel @JvmOverloads constructor(
             tempFileManager.deleteTempFiles()
         }
     }
+
+    // KMK --> Helper function for reading statistics
+    fun getReadingStats(): Pair<Int, Int>? {
+        val chapters = state.value.viewerChapters?.currChapter?.let { currChapter ->
+            val allChapters = state.value.viewerChapters?.flatten() ?: return null
+            val readChapters = allChapters.count { it.read }
+            val totalChapters = allChapters.size
+            return Pair(readChapters, totalChapters)
+        }
+        return chapters
+    }
+    // KMK <--
 
     @Immutable
     data class State(

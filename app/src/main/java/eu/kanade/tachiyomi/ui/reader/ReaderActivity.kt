@@ -542,6 +542,14 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 .collectAsState(persistentSetOf())
             val dualPageSplitPaged by readerPreferences.dualPageSplitPaged().collectAsState()
 
+            // KMK --> Collect autoscroll state
+            val isAutoscrollEnabled by scrollTimer.isActive.collectAsState()
+            // KMK --> Collect reading stats
+            val readingStats = remember(state.viewerChapters) {
+                viewModel.getReadingStats()
+            }
+            // KMK <--
+
             val forceHorizontalSeekbar by readerPreferences.forceHorizontalSeekbar().collectAsState()
             val landscapeVerticalSeekbar by readerPreferences.landscapeVerticalSeekbar().collectAsState()
             val leftHandedVerticalSeekbar by readerPreferences.leftVerticalSeekbar().collectAsState()
@@ -590,6 +598,10 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 onOpenInWebView = ::openChapterInWebView.takeIf { isHttpSource },
                 onOpenInBrowser = ::openChapterInBrowser.takeIf { isHttpSource },
                 onShare = ::shareChapter.takeIf { isHttpSource },
+                // KMK --> Add save image and metadata
+                onSaveImage = { viewModel.saveCurrentPage() },
+                readingStats = readingStats,
+                // KMK <--
 
                 viewer = state.viewer,
                 onNextChapter = ::loadNextChapter,
@@ -646,7 +658,10 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 },
                 onClickShiftPage = ::shiftDoublePages,
                 // KMK --> Add save image callback
-                onSaveImage = { viewModel.saveImage(false) },
+                onSaveImage = { viewModel.saveCurrentPage() },
+                // KMK --> Add autoscroll
+                isAutoscrollEnabled = isAutoscrollEnabled,
+                onToggleAutoscroll = { scrollTimer.setActive(!isAutoscrollEnabled) },
                 // KMK <--
                 // SY <--
             )
