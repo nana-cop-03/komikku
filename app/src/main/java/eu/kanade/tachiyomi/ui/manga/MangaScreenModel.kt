@@ -975,10 +975,20 @@ class MangaScreenModel(
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(mangaDir.uri, DocumentsContract.Document.MIME_TYPE_DIR)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                // Use MT File Manager instead of default
-                setPackage("bin.mt.plus.canary")
+                // Use selected file manager from preferences
+                val fileManagerPackage = uiPreferences.fileManagerPackage().get()
+                if (fileManagerPackage.isNotEmpty()) {
+                    setPackage(fileManagerPackage)
+                }
             }
-            context.startActivity(intent)
+            try {
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                // Fallback if specific file manager not available
+                logcat(LogPriority.WARN) { "Failed to open with $fileManagerPackage, trying default" }
+                intent.setPackage(null)
+                context.startActivity(intent)
+            }
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e)
             context.toast(e.message ?: context.stringResource(KMR.strings.error_opening_folder))

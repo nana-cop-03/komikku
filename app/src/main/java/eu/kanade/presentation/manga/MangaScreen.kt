@@ -1564,7 +1564,7 @@ private fun LazyListScope.sharedChapterItems(
                         onChapterSwipe(item, it)
                     },
                     // KMK -->
-                    formatType = getChapterFormatType(item.chapter.name),
+                    formatType = getChapterFormatType(item.chapter.url, item.chapter.name, state.source.isLocal()),
                     // KMK <--
                 )
             }
@@ -1573,7 +1573,20 @@ private fun LazyListScope.sharedChapterItems(
 }
 
 // KMK -->
-private fun getChapterFormatType(chapterName: String): String? {
+private fun getChapterFormatType(chapterName: String, isLocalSource: Boolean = false): String? {
+    // For local sources, the database name might not have extension, so check common formats
+    if (isLocalSource) {
+        // Try exact match first
+        return when {
+            chapterName.endsWith(".cbz", ignoreCase = true) -> "cbz"
+            chapterName.endsWith(".zip", ignoreCase = true) -> "zip"
+            chapterName.endsWith(".pdf", ignoreCase = true) -> "pdf"
+            chapterName.endsWith(".epub", ignoreCase = true) -> "epub"
+            // For local sources without extension in name, assume directories or unknown format
+            else -> null
+        }
+    }
+    // For non-local sources, check extensions
     return when {
         chapterName.endsWith(".cbz", ignoreCase = true) -> "cbz"
         chapterName.endsWith(".zip", ignoreCase = true) -> "zip"

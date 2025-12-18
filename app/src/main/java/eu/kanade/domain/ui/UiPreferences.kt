@@ -92,6 +92,10 @@ class UiPreferences(
 
     // SY <--
 
+    // KMK -->
+    fun fileManagerPackage() = preferenceStore.getString("pref_file_manager_package", "bin.mt.plus")
+    // KMK <--
+
     companion object {
         fun dateFormat(format: String): DateTimeFormatter = when (format) {
             "" -> DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
