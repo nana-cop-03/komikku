@@ -58,7 +58,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.google.android.material.elevation.SurfaceColors
 import com.google.android.material.transition.platform.MaterialContainerTransform
@@ -124,14 +123,11 @@ import exh.util.mangaType
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableSet
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.sample
@@ -155,7 +151,6 @@ import tachiyomi.presentation.core.util.collectAsState
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import java.io.ByteArrayOutputStream
-import kotlin.time.Duration.Companion.seconds
 import androidx.compose.ui.graphics.Color as ComposeColor
 
 class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListener {
@@ -336,12 +331,22 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
         val viewer = viewModel.state.value.viewer
         return when (viewer) {
             is WebtoonViewer -> {
-                viewer.scrollBy(delta, smooth)
+                // For webtoon continuous reader, scroll within the page
+                if (smooth) {
+                    viewer.recycler.smoothScrollBy(0, delta)
+                } else {
+                    viewer.recycler.scrollBy(0, delta)
+                }
                 true
             }
 
             is PagerViewer -> {
-                viewer.scrollBy(delta, smooth)
+                // For pager reader, scroll within the current page (if applicable)
+                if (delta > 0) {
+                    repeat((delta / 100).coerceAtLeast(1)) { viewer.moveDown() }
+                } else {
+                    repeat(((-delta) / 100).coerceAtLeast(1)) { viewer.moveUp() }
+                }
                 true
             }
 
@@ -352,12 +357,18 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
     override fun switchPageBy(delta: Int) {
         val viewer = viewModel.state.value.viewer
         when (viewer) {
-            is WebtoonViewer -> viewer.adjustScroll(delta)
+            is WebtoonViewer -> {
+                // For webtoon, scroll by a page amount (similar to Kotatsu: ~90% of height)
+                val scrollAmount = (viewer.recycler.height * 0.9f).toInt() * delta
+                viewer.recycler.smoothScrollBy(0, scrollAmount)
+            }
+
             is PagerViewer -> {
+                // For pager, move to next/previous page
                 if (delta > 0) {
-                    viewer.nextPage()
+                    viewer.moveToNext()
                 } else if (delta < 0) {
-                    viewer.previousPage()
+                    viewer.moveToPrevious()
                 }
             }
         }
@@ -769,6 +780,7 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                     )
                 }
                 // SY -->
+                ReaderViewModel.Dialog.AutoScrollHelp -> {} // Removed - ScrollTimer UI is self-contained
                 ReaderViewModel.Dialog.BoostPageHelp -> AlertDialog(
                     onDismissRequest = onDismissRequest,
                     confirmButton = {

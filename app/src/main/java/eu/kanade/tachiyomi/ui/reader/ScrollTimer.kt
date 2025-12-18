@@ -5,16 +5,12 @@ import android.os.SystemClock
 import android.view.MotionEvent
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import eu.kanade.tachiyomi.core.preference.PreferenceStore
-import kotlinx.coroutines.Dispatchers
+import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -40,7 +36,7 @@ class ScrollTimer(
     resources: Resources,
     private val listener: ReaderControlDelegate.OnInteractionListener,
     lifecycleOwner: LifecycleOwner,
-    private val preferenceStore: PreferenceStore,
+    private val readerPreferences: ReaderPreferences,
 ) {
 
     private val coroutineScope = lifecycleOwner.lifecycleScope
@@ -59,16 +55,11 @@ class ScrollTimer(
         get() = isRunning
 
     init {
-        // Observe speed changes
-        preferenceStore.asObservable(
-            READER_AUTOSCROLL_SPEED,
-            0f,
-        )
-            .flowOn(Dispatchers.Default)
-            .onEach { speed ->
-                onSpeedChanged(speed)
-            }
-            .launchIn(coroutineScope)
+        // Observe speed changes from preference
+        coroutineScope.launch {
+            val speedValue = readerPreferences.autoscrollInterval().get()
+            onSpeedChanged(speedValue)
+        }
     }
 
     fun setActive(value: Boolean) {
@@ -163,9 +154,5 @@ class ScrollTimer(
             }
             isTouchDown.first { !it }
         }
-    }
-
-    companion object {
-        const val READER_AUTOSCROLL_SPEED = "reader_autoscroll_speed"
     }
 }
