@@ -32,7 +32,15 @@ class PdfReader(private val parcelFileDescriptor: ParcelFileDescriptor) : Closea
             try {
                 val page = pdfRenderer.openPage(pageIndex)
                 return try {
-                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    // Get actual page dimensions to preserve aspect ratio
+                    val pageWidth = page.width
+                    val pageHeight = page.height
+                    val aspectRatio = pageHeight.toFloat() / pageWidth.toFloat()
+
+                    // Calculate height based on width to preserve aspect ratio
+                    val calculatedHeight = (width * aspectRatio).toInt()
+
+                    val bitmap = Bitmap.createBitmap(width, calculatedHeight, Bitmap.Config.ARGB_8888)
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     bitmap
                 } finally {

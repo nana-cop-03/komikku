@@ -419,7 +419,7 @@ actual class LocalSource(
         pdfFile.pdfReader(context).use { pdf ->
             val images = mutableListOf<File>()
             for (i in 0 until pdf.pageCount) {
-                // Render PDF page to bitmap with only width specified (height auto-calculated)
+                // Render PDF page to bitmap with width specified - height is auto-calculated to preserve aspect ratio
                 val renderedBitmap = pdf.renderPage(i, width = 1500)
 
                 // Create a white canvas-backed bitmap to fix black page issue
