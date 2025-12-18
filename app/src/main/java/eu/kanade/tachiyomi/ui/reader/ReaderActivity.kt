@@ -857,8 +857,6 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
 
         // Set initial visibility
         setMenuVisibility(viewModel.state.value.menuVisible)
-
-        enableExhAutoScroll()
     }
 
     // KMK -->
@@ -876,38 +874,6 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 ?.let { ComposeColor(it) }
     }
     // KMK <--
-
-    private fun enableExhAutoScroll() {
-        readerPreferences.autoscrollInterval().changes()
-            .combine(viewModel.state.map { it.autoScroll }.distinctUntilChanged()) { interval, enabled ->
-                interval.toDouble() to enabled
-            }.mapLatest { (intervalFloat, enabled) ->
-                if (enabled) {
-                    repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        val interval = intervalFloat.seconds
-
-                        while (true) {
-                            // Continue autoscroll regardless of menu visibility
-                            // Menu visibility changes don't interrupt autoscroll
-                            viewModel.state.value.viewer.let { v ->
-                                when (v) {
-                                    is PagerViewer -> v.moveToNext()
-                                    is WebtoonViewer -> {
-                                        if (readerPreferences.smoothAutoScroll().get()) {
-                                            v.linearScroll(interval)
-                                        } else {
-                                            v.scrollDown()
-                                        }
-                                    }
-                                }
-                            }
-                            delay(interval)
-                        }
-                    }
-                }
-            }
-            .launchIn(lifecycleScope)
-    }
 
     private fun exhRetryAll() {
         var retried = 0
