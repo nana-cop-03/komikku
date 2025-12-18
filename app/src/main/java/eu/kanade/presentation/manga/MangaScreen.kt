@@ -1573,20 +1573,19 @@ private fun LazyListScope.sharedChapterItems(
 }
 
 // KMK -->
-private fun getChapterFormatType(chapterName: String, isLocalSource: Boolean = false): String? {
-    // For local sources, the database name might not have extension, so check common formats
+private fun getChapterFormatType(chapterUrl: String, chapterName: String, isLocalSource: Boolean): String? {
+    // For local sources, try to extract format from the URL (which contains the actual filename with extension)
     if (isLocalSource) {
-        // Try exact match first
+        val filename = chapterUrl.substringAfterLast("/")
         return when {
-            chapterName.endsWith(".cbz", ignoreCase = true) -> "cbz"
-            chapterName.endsWith(".zip", ignoreCase = true) -> "zip"
-            chapterName.endsWith(".pdf", ignoreCase = true) -> "pdf"
-            chapterName.endsWith(".epub", ignoreCase = true) -> "epub"
-            // For local sources without extension in name, assume directories or unknown format
+            filename.endsWith(".cbz", ignoreCase = true) -> "cbz"
+            filename.endsWith(".zip", ignoreCase = true) -> "zip"
+            filename.endsWith(".pdf", ignoreCase = true) -> "pdf"
+            filename.endsWith(".epub", ignoreCase = true) -> "epub"
             else -> null
         }
     }
-    // For non-local sources, check extensions
+    // For non-local sources, check chapter name
     return when {
         chapterName.endsWith(".cbz", ignoreCase = true) -> "cbz"
         chapterName.endsWith(".zip", ignoreCase = true) -> "zip"

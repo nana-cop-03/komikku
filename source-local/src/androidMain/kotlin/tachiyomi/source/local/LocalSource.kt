@@ -458,11 +458,27 @@ actual class LocalSource(
     fun getFormat(chapter: SChapter): Format {
         try {
             val (mangaDirName, chapterName) = chapter.url.split('/', limit = 2)
-            return fileSystem.getBaseDirectory()
+            val chapterFile = fileSystem.getBaseDirectory()
                 ?.findFile(mangaDirName)
                 ?.findFile(chapterName)
-                ?.let(Format.Companion::valueOf)
-                ?: throw Exception(context.stringResource(MR.strings.chapter_not_found))
+            
+            if (chapterFile == null) {
+                logcat(LogPriority.WARN) { "Chapter file not found: $chapterName, attempting to find similar files..." }
+                // Try to find a file with a similar name (for cases where conversion might have renamed the file)
+                val mangaDir = fileSystem.getBaseDirectory()?.findFile(mangaDirName)
+                if (mangaDir != null) {
+                    val baseName = chapterName.substringBeforeLast('.')
+                    val similarFile = mangaDir.listFiles()?.find { file ->
+                        file.name?.startsWith(baseName) == true && !file.name?.startsWith('.') == true
+                    }
+                    if (similarFile != null) {
+                        return Format.valueOf(similarFile)
+                    }
+                }
+                throw Exception(context.stringResource(MR.strings.chapter_not_found))
+            }
+            
+            return Format.valueOf(chapterFile)
         } catch (e: Format.UnknownFormatException) {
             throw Exception(context.stringResource(MR.strings.local_invalid_format))
         } catch (e: Exception) {
