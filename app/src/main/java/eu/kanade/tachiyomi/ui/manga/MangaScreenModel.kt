@@ -975,6 +975,8 @@ class MangaScreenModel(
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(mangaDir.uri, DocumentsContract.Document.MIME_TYPE_DIR)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                // Use MT File Manager instead of default
+                setPackage("bin.mt.plus")
             }
             context.startActivity(intent)
         } catch (e: Exception) {
