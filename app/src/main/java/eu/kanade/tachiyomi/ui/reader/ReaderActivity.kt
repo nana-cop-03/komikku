@@ -26,24 +26,14 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.surfaceColorAtElevation
@@ -90,6 +80,7 @@ import eu.kanade.presentation.reader.ReaderPageActionsDialog
 import eu.kanade.presentation.reader.ReadingModeSelectDialog
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.appbars.ReaderAppBars
+import eu.kanade.presentation.reader.autoscroll.AutoscrollFab
 import eu.kanade.presentation.reader.settings.ReaderSettingsDialog
 import eu.kanade.presentation.theme.TachiyomiTheme
 import eu.kanade.tachiyomi.R
@@ -106,6 +97,7 @@ import eu.kanade.tachiyomi.ui.main.MainActivity
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.AddToLibraryFirst
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.Error
 import eu.kanade.tachiyomi.ui.reader.ReaderViewModel.SetAsCoverResult.Success
+import eu.kanade.tachiyomi.ui.reader.ScrollTimer
 import eu.kanade.tachiyomi.ui.reader.loader.HttpPageLoader
 import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
@@ -166,7 +158,7 @@ import java.io.ByteArrayOutputStream
 import kotlin.time.Duration.Companion.seconds
 import androidx.compose.ui.graphics.Color as ComposeColor
 
-class ReaderActivity : BaseActivity() {
+class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListener {
 
     companion object {
 
@@ -222,6 +214,8 @@ class ReaderActivity : BaseActivity() {
 
     var isScrollingThroughPages = false
         private set
+
+    private lateinit var scrollTimer: ScrollTimer
 
     /**
      * Called when the activity is created. Initializes the presenter and configuration.
@@ -323,6 +317,50 @@ class ReaderActivity : BaseActivity() {
                 }
             }
             .launchIn(lifecycleScope)
+
+        // Initialize ScrollTimer for autoscroll
+        scrollTimer = ScrollTimer(resources, this, this, readerPreferences)
+    }
+
+    // ========== OnInteractionListener Implementation ==========
+
+    override fun onUserInteraction() {
+        // Optional: can be used to track user interactions if needed
+    }
+
+    override fun isReaderResumed(): Boolean {
+        return lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+    }
+
+    override fun scrollBy(delta: Int, smooth: Boolean): Boolean {
+        val viewer = viewModel.state.value.viewer
+        return when (viewer) {
+            is WebtoonViewer -> {
+                viewer.scrollBy(delta, smooth)
+                true
+            }
+
+            is PagerViewer -> {
+                viewer.scrollBy(delta, smooth)
+                true
+            }
+
+            else -> false
+        }
+    }
+
+    override fun switchPageBy(delta: Int) {
+        val viewer = viewModel.state.value.viewer
+        when (viewer) {
+            is WebtoonViewer -> viewer.adjustScroll(delta)
+            is PagerViewer -> {
+                if (delta > 0) {
+                    viewer.nextPage()
+                } else if (delta < 0) {
+                    viewer.previousPage()
+                }
+            }
+        }
     }
 
     /**
@@ -580,12 +618,12 @@ class ReaderActivity : BaseActivity() {
                 // SY -->
                 isExhToolsVisible = state.ehUtilsVisible,
                 onSetExhUtilsVisibility = viewModel::showEhUtils,
-                isAutoScroll = state.autoScroll,
+                isAutoScroll = false, // Deprecated - using ScrollTimer
                 isAutoScrollEnabled = state.isAutoScrollEnabled,
-                onToggleAutoscroll = viewModel::toggleAutoScroll,
-                autoScrollFrequency = state.ehAutoscrollFreq,
-                onSetAutoScrollFrequency = viewModel::setAutoScrollFrequency,
-                onClickAutoScrollHelp = viewModel::openAutoScrollHelpDialog,
+                onToggleAutoscroll = { scrollTimer.setActive(it) }, // Use ScrollTimer
+                autoScrollFrequency = "0.5", // Deprecated - using ScrollTimer preference
+                onSetAutoScrollFrequency = { /* Deprecated - ScrollTimer reads preference directly */ },
+                onClickAutoScrollHelp = { /* Removed - ScrollTimer UI is self-contained */ },
                 onClickRetryAll = ::exhRetryAll,
                 onClickRetryAllHelp = viewModel::openRetryAllHelp,
                 onClickBoostPage = ::exhBoostPage,
@@ -731,91 +769,6 @@ class ReaderActivity : BaseActivity() {
                     )
                 }
                 // SY -->
-                ReaderViewModel.Dialog.AutoScrollHelp -> AlertDialog(
-                    onDismissRequest = onDismissRequest,
-                    confirmButton = {
-                        TextButton(onClick = onDismissRequest) {
-                            Text(text = stringResource(MR.strings.action_ok))
-                        }
-                    },
-                    title = { Text(text = stringResource(SYMR.strings.eh_autoscroll)) },
-                    text = {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            // Speed slider (0.0 - 1.0, displayed as 0.1x - 11.0x like Kotatsu)
-                            val currentSpeed = state.ehAutoscrollFreq.toFloatOrNull() ?: 0.5f
-                            var sliderValue by remember { mutableStateOf(currentSpeed.coerceIn(0f, 1f)) }
-
-                            // Display speed multiplier (0.1x to 11.0x)
-                            val displaySpeed = 0.1f + (sliderValue * 10.9f)
-
-                            Text(
-                                text = stringResource(SYMR.strings.eh_autoscroll) + ": ${String.format("%.1f", displaySpeed)}x",
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                            androidx.compose.material3.Slider(
-                                value = sliderValue,
-                                onValueChange = {
-                                    sliderValue = it
-                                    viewModel.setAutoScrollFrequency(String.format("%.3f", it))
-                                },
-                                valueRange = 0f..1f,
-                                steps = 99, // 100 steps for smooth control (0.01 increments)
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-
-                            // Preset buttons with speed multipliers
-                            Text(
-                                text = "Presets:",
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                // Speed presets (0.1x to 11.0x converted to 0.0-1.0 scale)
-                                listOf(
-                                    0.1f to "0.1x",
-                                    0.5f to "0.5x",
-                                    1.0f to "1.0x",
-                                    2.0f to "2.0x",
-                                    3.0f to "3.0x",
-                                    5.0f to "5.0x",
-                                    7.0f to "7.0x",
-                                    10.0f to "10.0x",
-                                    11.0f to "11.0x",
-                                ).forEach { (displayValue, label) ->
-                                    // Convert display value (0.1-11.0) back to 0.0-1.0 scale
-                                    val scaleValue = (displayValue - 0.1f) / 10.9f
-                                    androidx.compose.material3.AssistChip(
-                                        onClick = {
-                                            sliderValue = scaleValue
-                                            viewModel.setAutoScrollFrequency(String.format("%.3f", scaleValue))
-                                        },
-                                        label = { Text(label) },
-                                        modifier = Modifier.padding(4.dp),
-                                    )
-                                }
-                            }
-
-                            // Info text
-                            Text(
-                                text = stringResource(SYMR.strings.eh_autoscroll_help_message) +
-                                    "\n\nTip: Lower values = slower scroll, Higher values = faster scroll",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(0.9f),
-                )
                 ReaderViewModel.Dialog.BoostPageHelp -> AlertDialog(
                     onDismissRequest = onDismissRequest,
                     confirmButton = {
@@ -840,7 +793,8 @@ class ReaderActivity : BaseActivity() {
                 null -> {}
             }
 
-            // KMK --> Autoscroll overlay button (always on top)
+            // KMK --> Autoscroll controls with ScrollTimer
+            val autoscrollActive by scrollTimer.isActive.collectAsState()
             if (state.isAutoScrollEnabled && (state.viewer is WebtoonViewer || state.viewer is VerticalPagerViewer)) {
                 Box(
                     modifier = Modifier
@@ -848,32 +802,10 @@ class ReaderActivity : BaseActivity() {
                         .padding(16.dp),
                     contentAlignment = Alignment.BottomEnd,
                 ) {
-                    FloatingActionButton(
-                        onClick = { viewModel.toggleAutoScroll(!state.autoScroll) },
-                        containerColor = if (state.autoScroll) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        },
-                        contentColor = if (state.autoScroll) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    ) {
-                        Icon(
-                            imageVector = if (state.autoScroll) {
-                                Icons.Default.Pause
-                            } else {
-                                Icons.Default.PlayArrow
-                            },
-                            contentDescription = if (state.autoScroll) {
-                                stringResource(MR.strings.action_pause)
-                            } else {
-                                stringResource(MR.strings.action_resume)
-                            },
-                        )
-                    }
+                    AutoscrollFab(
+                        isActive = autoscrollActive,
+                        onToggle = { scrollTimer.setActive(it) },
+                    )
                 }
             }
             // KMK <--
