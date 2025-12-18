@@ -409,7 +409,7 @@ object SettingsDataScreen : SearchableSettings {
                 Preference.PreferenceItem.ListPreference(
                     preference = uiPreferences.fileManagerPackage(),
                     entries = persistentMapOf(
-                        "system" to stringResource(MR.strings.action_default),
+                        "system" to "System Default",
                         "bin.mt.plus" to "MT File Manager",
                         "bin.mt.plus.canary" to "MT File Manager (Canary)",
                     ),
