@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +55,11 @@ fun BottomReaderBar(
     onClickShare: (() -> Unit)?,
     onClickPageLayout: () -> Unit,
     onClickShiftPage: () -> Unit,
+    // KMK --> Add bookmark and save image
+    bookmarked: Boolean = false,
+    onToggleBookmarked: (() -> Unit)? = null,
+    onSaveImage: (() -> Unit)? = null,
+    // KMK <--
     // SY <--
 ) {
     // KMK -->
@@ -65,6 +73,39 @@ fun BottomReaderBar(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // KMK --> Bookmark button
+        if (onToggleBookmarked != null) {
+            IconButton(onClick = onToggleBookmarked) {
+                Icon(
+                    imageVector = if (bookmarked) {
+                        Icons.Outlined.Bookmark
+                    } else {
+                        Icons.Outlined.BookmarkBorder
+                    },
+                    contentDescription = stringResource(
+                        if (bookmarked) {
+                            MR.strings.action_remove_bookmark
+                        } else {
+                            MR.strings.action_bookmark
+                        },
+                    ),
+                    tint = iconColor,
+                )
+            }
+        }
+        
+        // Save image button
+        if (onSaveImage != null) {
+            IconButton(onClick = onSaveImage) {
+                Icon(
+                    imageVector = Icons.Outlined.Download,
+                    contentDescription = stringResource(MR.strings.action_save),
+                    tint = iconColor,
+                )
+            }
+        }
+        // KMK <--
+        
         // SY -->
         if (ReaderBottomButton.ViewChapters.isIn(enabledButtons)) {
             IconButton(onClick = onClickChapterList) {

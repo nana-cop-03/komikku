@@ -83,6 +83,9 @@ fun ReaderAppBars(
     onOpenInWebView: (() -> Unit)?,
     onOpenInBrowser: (() -> Unit)?,
     onShare: (() -> Unit)?,
+    // KMK --> Add save image callback
+    onSaveImage: (() -> Unit)? = null,
+    // KMK <--
 
     viewer: Viewer?,
     onNextChapter: () -> Unit,
@@ -345,6 +348,11 @@ fun ReaderAppBars(
                         onClickShare = onShare,
                         onClickPageLayout = onClickPageLayout,
                         onClickShiftPage = onClickShiftPage,
+                        // KMK --> Add bookmark and save image
+                        bookmarked = bookmarked,
+                        onToggleBookmarked = onToggleBookmarked,
+                        onSaveImage = onSaveImage,
+                        // KMK <--
                         // SY <--
                     )
                 }

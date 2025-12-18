@@ -610,6 +610,9 @@ class ReaderActivity : BaseActivity() {
                     }
                 },
                 onClickShiftPage = ::shiftDoublePages,
+                // KMK --> Add save image callback
+                onSaveImage = ::saveCurrentPage,
+                // KMK <--
                 // SY <--
             )
 
