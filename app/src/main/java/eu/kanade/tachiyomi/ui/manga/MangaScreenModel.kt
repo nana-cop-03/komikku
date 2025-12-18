@@ -1590,7 +1590,48 @@ class MangaScreenModel(
 
     fun renameChapter(chapter: Chapter, newName: String) {
         screenModelScope.launchIO {
+            val source = successState?.source
+            val manga = successState?.manga
+
+            // If it's a local source, rename the actual file/folder on filesystem
+            if (source?.isLocal() == true && manga != null) {
+                try {
+                    val localSource = sourceManager.get(manga.source) as? tachiyomi.source.local.LocalSource
+                        ?: return@launchIO
+
+                    val mangaDir = localSource.getMangaDirectory(manga.url) ?: return@launchIO
+
+                    // Get old chapter directory name(s)
+                    val oldChapterNames = downloadProvider.getValidChapterDirNames(chapter.name, chapter.scanlator)
+                    val oldChapterDir = oldChapterNames.asSequence()
+                        .mapNotNull { mangaDir.findFile(it) }
+                        .firstOrNull() ?: return@launchIO
+
+                    // Generate new chapter directory name
+                    var newChapterDirName = downloadProvider.getChapterDirName(newName, chapter.scanlator)
+                    if (oldChapterDir.isFile && oldChapterDir.extension == "cbz") {
+                        newChapterDirName += ".cbz"
+                    }
+
+                    // Rename the file/folder
+                    if (!oldChapterDir.renameTo(newChapterDirName)) {
+                        logcat(LogPriority.ERROR) { "Failed to rename chapter directory: ${oldChapterDir.name}" }
+                        return@launchIO
+                    }
+
+                    logcat(LogPriority.INFO) { "Successfully renamed chapter: ${oldChapterDir.name} -> $newChapterDirName" }
+                } catch (e: Throwable) {
+                    logcat(LogPriority.ERROR, e) { "Error renaming chapter file: ${e.message}" }
+                }
+            }
+
+            // Update database
             updateChapter.await(ChapterUpdate(id = chapter.id, name = newName))
+
+            // Refresh chapters state for local source to reflect filesystem changes
+            if (source?.isLocal() == true) {
+                fetchChaptersFromSource()
+            }
         }
     }
 

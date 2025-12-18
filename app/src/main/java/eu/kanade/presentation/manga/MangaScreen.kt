@@ -942,6 +942,8 @@ private fun MangaScreenSmallImpl(
         onConfirm = {
             chapterToRename?.let {
                 onRenameChapter(it, renameText)
+                // Clear selection after rename
+                onAllChapterSelected(false)
             }
             showRenameDialog = false
             chapterToRename = null
