@@ -469,7 +469,7 @@ actual class LocalSource(
                 if (mangaDir != null) {
                     val baseName = chapterName.substringBeforeLast('.')
                     val similarFile = mangaDir.listFiles()?.find { file ->
-                        file.name?.startsWith(baseName) == true && !file.name?.startsWith('.') == true
+                        file.name?.startsWith(baseName) == true && file.name?.startsWith('.') != true
                     }
                     if (similarFile != null) {
                         return Format.valueOf(similarFile)

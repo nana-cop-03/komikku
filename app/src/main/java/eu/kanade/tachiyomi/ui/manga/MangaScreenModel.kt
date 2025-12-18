@@ -998,9 +998,9 @@ class MangaScreenModel(
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(mangaDir.uri, DocumentsContract.Document.MIME_TYPE_DIR)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                // Use selected file manager from preferences
+                // Use selected file manager from preferences only if not set to system default
                 val fileManagerPackage = uiPreferences.fileManagerPackage().get()
-                if (fileManagerPackage.isNotEmpty()) {
+                if (fileManagerPackage.isNotEmpty() && fileManagerPackage != "system") {
                     setPackage(fileManagerPackage)
                 }
             }

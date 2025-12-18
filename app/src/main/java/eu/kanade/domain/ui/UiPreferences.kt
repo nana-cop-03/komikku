@@ -93,7 +93,7 @@ class UiPreferences(
     // SY <--
 
     // KMK -->
-    fun fileManagerPackage() = preferenceStore.getString("pref_file_manager_package", "bin.mt.plus")
+    fun fileManagerPackage() = preferenceStore.getString("pref_file_manager_package", "system")
     // KMK <--
 
     companion object {
