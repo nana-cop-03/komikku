@@ -749,32 +749,31 @@ class ReaderActivity : BaseActivity() {
                             // Speed slider (0.0 - 1.0, displayed as 0.1x - 11.0x like Kotatsu)
                             val currentSpeed = state.ehAutoscrollFreq.toFloatOrNull() ?: 0.5f
                             var sliderValue by remember { mutableStateOf(currentSpeed.coerceIn(0f, 1f)) }
-                            
+
                             // Display speed multiplier (0.1x to 11.0x)
                             val displaySpeed = 0.1f + (sliderValue * 10.9f)
-                            
+
                             Text(
                                 text = stringResource(SYMR.strings.eh_autoscroll) + ": ${String.format("%.1f", displaySpeed)}x",
                                 style = MaterialTheme.typography.labelMedium,
                             )
-                            
                             androidx.compose.material3.Slider(
                                 value = sliderValue,
-                                onValueChange = { 
+                                onValueChange = {
                                     sliderValue = it
                                     viewModel.setAutoScrollFrequency(String.format("%.3f", it))
                                 },
                                 valueRange = 0f..1f,
-                                steps = 99,  // 100 steps for smooth control (0.01 increments)
+                                steps = 99, // 100 steps for smooth control (0.01 increments)
                                 modifier = Modifier.fillMaxWidth(),
                             )
-                            
+
                             // Preset buttons with speed multipliers
                             Text(
                                 text = "Presets:",
                                 style = MaterialTheme.typography.labelSmall,
                             )
-                            
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -784,7 +783,7 @@ class ReaderActivity : BaseActivity() {
                                 // Speed presets (0.1x to 11.0x converted to 0.0-1.0 scale)
                                 listOf(
                                     0.1f to "0.1x",
-                                    0.5f to "0.5x", 
+                                    0.5f to "0.5x",
                                     1.0f to "1.0x",
                                     2.0f to "2.0x",
                                     3.0f to "3.0x",
@@ -805,10 +804,10 @@ class ReaderActivity : BaseActivity() {
                                     )
                                 }
                             }
-                            
+
                             // Info text
                             Text(
-                                text = stringResource(SYMR.strings.eh_autoscroll_help_message) + 
+                                text = stringResource(SYMR.strings.eh_autoscroll_help_message) +
                                     "\n\nTip: Lower values = slower scroll, Higher values = faster scroll",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -8,12 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -93,7 +93,7 @@ fun BottomReaderBar(
                 )
             }
         }
-        
+
         // Save image button
         if (onSaveImage != null) {
             IconButton(onClick = onSaveImage) {
@@ -105,7 +105,7 @@ fun BottomReaderBar(
             }
         }
         // KMK <--
-        
+
         // SY -->
         if (ReaderBottomButton.ViewChapters.isIn(enabledButtons)) {
             IconButton(onClick = onClickChapterList) {
