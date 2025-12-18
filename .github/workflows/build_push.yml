@@ -65,8 +65,14 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: ./gradlew spotlessCheck
 
-      - name: Build app
-        run: ./gradlew assemblePreview -Penable-updater --build-cache --parallel --daemon
+      - name: Build preview (fast)
+        run: |
+          ./gradlew assemblePreview \
+            -Penable-updater \
+            -Pandroid.injected.build.abi=arm64-v8a \
+            --parallel \
+            --build-cache \
+            --daemon
 
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
