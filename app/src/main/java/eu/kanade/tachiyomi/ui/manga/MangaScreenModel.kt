@@ -230,7 +230,7 @@ class MangaScreenModel(
     private val filterChaptersForDownload: FilterChaptersForDownload = Injekt.get(),
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
     // KMK -->
-    val conversionProgress: MutableMap<Long, Int> = mutableStateMapOf(),
+    val conversionProgress: MutableMap<Long, Int> = mutableMapOf(),
     // KMK <--
     private val deleteLibraryUpdateErrors: DeleteLibraryUpdateErrors = Injekt.get(),
     private val insertLibraryUpdateErrors: InsertLibraryUpdateErrors = Injekt.get(),

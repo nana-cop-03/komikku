@@ -41,6 +41,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -55,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionOnScreen
@@ -507,7 +509,7 @@ private fun MangaScreenSmallImpl(
     var renameText by remember { mutableStateOf("") }
     // KMK <--
 
-    private fun onChapterItemClick(
+    fun onChapterItemClick(
         chapterItem: ChapterList.Item,
         isAnyChapterSelected: Boolean,
         onToggleSelection: (Boolean) -> Unit,
@@ -521,7 +523,7 @@ private fun MangaScreenSmallImpl(
     }
 
     @Composable
-    private fun RenameDialogContent(
+    fun RenameDialogContent(
         showDialog: Boolean,
         text: String,
         onTextChange: (String) -> Unit,
