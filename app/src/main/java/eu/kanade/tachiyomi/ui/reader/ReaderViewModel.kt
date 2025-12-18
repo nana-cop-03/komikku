@@ -1500,7 +1500,7 @@ class ReaderViewModel @JvmOverloads constructor(
         val nextChapter = chapters.nextChapter
         val allChapters = listOfNotNull(prevChapter, currChapter, nextChapter)
         if (allChapters.isEmpty()) return null
-        val readChapters = allChapters.count { it.read }
+        val readChapters = allChapters.count { it.chapter.read }
         val totalChapters = allChapters.size
         return Pair(readChapters, totalChapters)
     }
