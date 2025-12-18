@@ -27,9 +27,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -747,6 +755,44 @@ class ReaderActivity : BaseActivity() {
                 // SY <--
                 null -> {}
             }
+
+            // KMK --> Autoscroll overlay button (always on top)
+            if (state.isAutoScrollEnabled && (state.viewer is WebtoonViewer || state.viewer is VerticalPagerViewer)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.BottomEnd,
+                ) {
+                    FloatingActionButton(
+                        onClick = { viewModel.toggleAutoScroll(!state.autoScroll) },
+                        containerColor = if (state.autoScroll) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.surfaceVariant
+                        },
+                        contentColor = if (state.autoScroll) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    ) {
+                        Icon(
+                            imageVector = if (state.autoScroll) {
+                                Icons.Default.Pause
+                            } else {
+                                Icons.Default.PlayArrow
+                            },
+                            contentDescription = if (state.autoScroll) {
+                                stringResource(MR.strings.action_pause)
+                            } else {
+                                stringResource(MR.strings.action_resume)
+                            },
+                        )
+                    }
+                }
+            }
+            // KMK <--
         }
 
         // KMK -->
