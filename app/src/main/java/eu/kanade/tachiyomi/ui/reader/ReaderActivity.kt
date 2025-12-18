@@ -341,13 +341,9 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
             }
 
             is PagerViewer -> {
-                // For pager reader, scroll within the current page (if applicable)
-                if (delta > 0) {
-                    repeat((delta / 100).coerceAtLeast(1)) { viewer.moveDown() }
-                } else {
-                    repeat(((-delta) / 100).coerceAtLeast(1)) { viewer.moveUp() }
-                }
-                true
+                // For pager reader, pages are discrete - can't scroll within page
+                // Return false to trigger page switching logic in ScrollTimer
+                false
             }
 
             else -> false
