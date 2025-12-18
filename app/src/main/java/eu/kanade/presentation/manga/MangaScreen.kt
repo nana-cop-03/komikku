@@ -28,13 +28,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.State
@@ -47,7 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -137,6 +142,47 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
+
+// SY -->
+typealias MetadataDescriptionComposable = @Composable (
+    state: MangaScreenModel.State.Success,
+    openMetadataViewer: () -> Unit,
+    search: (String) -> Unit,
+) -> Unit
+
+@Composable
+fun metadataDescription(source: Source): MetadataDescriptionComposable? {
+    val metadataSource = remember(source.id) { source.getMainSource<MetadataSource<*, *>>() }
+    return remember(metadataSource) {
+        when (metadataSource) {
+            is EHentai -> { state, openMetadataViewer, search ->
+                EHentaiDescription(state, openMetadataViewer, search)
+            }
+            is MangaDex -> { state, openMetadataViewer, _ ->
+                MangaDexDescription(state, openMetadataViewer)
+            }
+            is NHentai -> { state, openMetadataViewer, _ ->
+                NHentaiDescription(state, openMetadataViewer)
+            }
+            is EightMuses -> { state, openMetadataViewer, _ ->
+                EightMusesDescription(state, openMetadataViewer)
+            }
+            is HBrowse -> { state, openMetadataViewer, _ ->
+                HBrowseDescription(state, openMetadataViewer)
+            }
+            is Pururin -> { state, openMetadataViewer, _ ->
+                PururinDescription(state, openMetadataViewer)
+            }
+            is Tsumino -> { state, openMetadataViewer, _ ->
+                TsuminoDescription(state, openMetadataViewer)
+            }
+            else -> null
+        }
+    }
+}
+// SY <--
 
 @Composable
 fun MangaScreen(
@@ -460,6 +506,74 @@ private fun MangaScreenSmallImpl(
     var chapterToRename by remember { mutableStateOf<Chapter?>(null) }
     var renameText by remember { mutableStateOf("") }
     // KMK <--
+
+    private fun onChapterItemClick(
+        chapterItem: ChapterList.Item,
+        isAnyChapterSelected: Boolean,
+        onToggleSelection: (Boolean) -> Unit,
+        onChapterClicked: (Chapter) -> Unit,
+    ) {
+        when {
+            chapterItem.selected -> onToggleSelection(false)
+            isAnyChapterSelected -> onToggleSelection(true)
+            else -> onChapterClicked(chapterItem.chapter)
+        }
+    }
+
+    // ktlint-disable
+    @Composable
+    private fun RenameDialog() {
+        if (showRenameDialog) {
+            val focusRequester = remember { FocusRequester() }
+            AlertDialog(
+                onDismissRequest = { showRenameDialog = false },
+                confirmButton = {
+                    TextButton(
+                        enabled = renameText.isNotBlank(),
+                        onClick = {
+                            chapterToRename?.let { chapter ->
+                                onRenameChapter(chapter, renameText)
+                            }
+                            showRenameDialog = false
+                            chapterToRename = null
+                            renameText = ""
+                        },
+                    ) {
+                        Text(text = stringResource(MR.strings.action_ok))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showRenameDialog = false
+                            chapterToRename = null
+                            renameText = ""
+                        },
+                    ) {
+                        Text(text = stringResource(MR.strings.action_cancel))
+                    }
+                },
+                title = {
+                    Text(text = stringResource(MR.strings.action_edit))
+                },
+                text = {
+                    Column {
+                        OutlinedTextField(
+                            value = renameText,
+                            onValueChange = { renameText = it },
+                            label = { Text(text = stringResource(MR.strings.name)) },
+                            singleLine = true,
+                        )
+                    }
+                },
+            )
+            LaunchedEffect(focusRequester) {
+                delay(100.milliseconds)
+                focusRequester.requestFocus()
+            }
+        }
+    }
+    // ktlint-enable
 
     BackHandler(onBack = {
         if (isAnySelected) {
@@ -1427,54 +1541,56 @@ private fun LazyListScope.sharedChapterItems(
     }
 }
 
-private fun onChapterItemClick(
-    chapterItem: ChapterList.Item,
-    isAnyChapterSelected: Boolean,
-    onToggleSelection: (Boolean) -> Unit,
-    onChapterClicked: (Chapter) -> Unit,
-) {
-    when {
-        chapterItem.selected -> onToggleSelection(false)
-        isAnyChapterSelected -> onToggleSelection(true)
-        else -> onChapterClicked(chapterItem.chapter)
-    }
-}
+    RenameDialog()
 
 // SY -->
-typealias MetadataDescriptionComposable = @Composable (
-    state: MangaScreenModel.State.Success,
-    openMetadataViewer: () -> Unit,
-    search: (String) -> Unit,
-) -> Unit
 
-@Composable
-fun metadataDescription(source: Source): MetadataDescriptionComposable? {
-    val metadataSource = remember(source.id) { source.getMainSource<MetadataSource<*, *>>() }
-    return remember(metadataSource) {
-        when (metadataSource) {
-            is EHentai -> { state, openMetadataViewer, search ->
-                EHentaiDescription(state, openMetadataViewer, search)
-            }
-            is MangaDex -> { state, openMetadataViewer, _ ->
-                MangaDexDescription(state, openMetadataViewer)
-            }
-            is NHentai -> { state, openMetadataViewer, _ ->
-                NHentaiDescription(state, openMetadataViewer)
-            }
-            is EightMuses -> { state, openMetadataViewer, _ ->
-                EightMusesDescription(state, openMetadataViewer)
-            }
-            is HBrowse -> { state, openMetadataViewer, _ ->
-                HBrowseDescription(state, openMetadataViewer)
-            }
-            is Pururin -> { state, openMetadataViewer, _ ->
-                PururinDescription(state, openMetadataViewer)
-            }
-            is Tsumino -> { state, openMetadataViewer, _ ->
-                TsuminoDescription(state, openMetadataViewer)
-            }
-            else -> null
+    if (showRenameDialog) {
+        val focusRequester = remember { FocusRequester() }
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            confirmButton = {
+                TextButton(
+                    enabled = renameText.isNotBlank(),
+                    onClick = {
+                        chapterToRename?.let { chapter ->
+                            onRenameChapter(chapter, renameText)
+                        }
+                        showRenameDialog = false
+                        chapterToRename = null
+                        renameText = ""
+                    },
+                ) {
+                    Text(text = stringResource(MR.strings.action_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showRenameDialog = false
+                        chapterToRename = null
+                        renameText = ""
+                    },
+                ) {
+                    Text(text = stringResource(MR.strings.action_cancel))
+                }
+            },
+            title = {
+                Text(text = stringResource(MR.strings.action_edit))
+            },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = renameText,
+                        onValueChange = { renameText = it },
+                        label = { Text(text = stringResource(MR.strings.name)) },
+                        singleLine = true,
+                    )
+                }
+            },
+        )
+        LaunchedEffect(focusRequester) {
+            delay(100.milliseconds)
+            focusRequester.requestFocus()
         }
     }
-}
-// SY <--

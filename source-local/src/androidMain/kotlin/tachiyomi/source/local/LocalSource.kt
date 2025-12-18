@@ -367,26 +367,8 @@ actual class LocalSource(
                 .filter { it.isDirectory || Archive.isSupported(it) || it.extension.equals("epub", true) || it.extension.equals("pdf", true) }
                 .map { chapterFile ->
                     val originalFormat = Format.valueOf(chapterFile)
-                    val format: Format
-                    val fileToUse: UniFile
-                    if (originalFormat is Format.Pdf) {
-                        val zipName = chapterFile.nameWithoutExtension + ".zip"
-                        val zipFile = mangaDir.findFile(zipName)
-                        if (zipFile != null) {
-                            format = Format.valueOf(zipFile)
-                            fileToUse = zipFile
-                        } else {
-                            // convert
-                            val backupDir = mangaDir.createDirectory(".backupfiles_pdf")!!
-                            val zipFileCreated = mangaDir.createFile(zipName)!!
-                            convertPdfToZip(chapterFile, zipFileCreated, backupDir)
-                            format = Format.valueOf(zipFileCreated)
-                            fileToUse = zipFileCreated
-                        }
-                    } else {
-                        format = originalFormat
-                        fileToUse = chapterFile
-                    }
+                    val format = originalFormat
+                    val fileToUse = chapterFile
                     SChapter.create().apply {
                         url = "${manga.url}/${fileToUse.name}"
                         name = if (fileToUse.isDirectory) {
@@ -425,7 +407,12 @@ actual class LocalSource(
         }
     }
 
-    private suspend fun convertPdfToZip(pdfFile: UniFile, zipFile: UniFile, backupDir: UniFile) = withIOContext {
+    suspend fun convertPdfToZip(
+        pdfFile: UniFile,
+        zipFile: UniFile,
+        backupDir: UniFile,
+        onProgress: (Int, Int) -> Unit = { _, _ -> },
+    ) = withIOContext {
         val tempDir = File(context.cacheDir, "pdf_temp").apply { mkdirs() }
         pdfFile.pdfReader(context).use { pdf ->
             val images = mutableListOf<File>()
@@ -438,6 +425,7 @@ actual class LocalSource(
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                 }
                 images.add(imageFile)
+                onProgress(i + 1, pdf.pageCount)
             }
             ZipOutputStream(zipFile.openOutputStream()).use { zipOut ->
                 images.forEachIndexed { index, file ->

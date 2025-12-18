@@ -164,6 +164,7 @@ import tachiyomi.domain.track.model.Track
 import tachiyomi.i18n.MR
 import tachiyomi.i18n.kmk.KMR
 import tachiyomi.source.local.LocalSource
+import tachiyomi.source.local.io.Format
 import tachiyomi.source.local.isLocal
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
@@ -229,6 +230,8 @@ class MangaScreenModel(
     private val filterChaptersForDownload: FilterChaptersForDownload = Injekt.get(),
     val snackbarHostState: SnackbarHostState = SnackbarHostState(),
     // KMK -->
+    val conversionProgress: MutableMap<Long, Int> = mutableStateMapOf(),
+    // KMK <--
     private val deleteLibraryUpdateErrors: DeleteLibraryUpdateErrors = Injekt.get(),
     private val insertLibraryUpdateErrors: InsertLibraryUpdateErrors = Injekt.get(),
     private val insertLibraryUpdateErrorMessages: InsertLibraryUpdateErrorMessages = Injekt.get(),
@@ -379,7 +382,7 @@ class MangaScreenModel(
                 // SY <--
                 .flowWithLifecycle(lifecycle)
                 .collectLatest { (manga, chapters /* SY --> */, flatMetadata, mergedData /* SY <-- */) ->
-                    val chapterItems = chapters.toChapterListItems(manga /* SY --> */, mergedData /* SY <-- */)
+                    val chapterItems = chapters.toChapterListItems(manga, mergedData, conversionProgress.toMap())
                     updateSuccessState {
                         it.copy(
                             manga = manga,
@@ -448,7 +451,7 @@ class MangaScreenModel(
             } else {
                 getMangaAndChapters.awaitChapters(mangaId, applyFilter = true)
             }
-                .toChapterListItems(manga, mergedData)
+                .toChapterListItems(manga, mergedData, conversionProgress.toMap())
             val meta = getFlatMetadata.await(mangaId)
             // SY <--
 
@@ -495,8 +498,38 @@ class MangaScreenModel(
                     alwaysShowReadingProgress =
                     readerPreferences.preserveReadingPosition().get() && manga.isEhBasedManga(),
                     previewsRowCount = uiPreferences.previewsRowCount().get(),
+                    conversionProgress = conversionProgress.toMap(),
                     // SY <--
                 )
+            }
+
+            // Launch PDF conversion for local manga
+            screenModelScope.launch {
+                if (manga.isLocal()) {
+                    val source = sourceManager.get(manga.source) as? LocalSource ?: return@launch
+                    for (item in chapterItems) {
+                        val chapter = item.chapter
+                        val format = source.getFormat(chapter.toSChapter())
+                        if (format is Format.Pdf) {
+                            val mangaDir = source.fileSystem.getMangaDirectory(manga.url) ?: continue
+                            val chapterFile = mangaDir.findFile(chapter.name + ".pdf") ?: continue
+                            val zipName = chapter.name + ".zip"
+                            val zipFile = mangaDir.findFile(zipName)
+                            if (zipFile == null) {
+                                val backupDir = mangaDir.createDirectory(".backupfiles_pdf")!!
+                                val zipFileCreated = mangaDir.createFile(zipName)!!
+                                conversionProgress[chapter.id] = 0
+                                updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADING, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
+                                source.convertPdfToZip(chapterFile, zipFileCreated, backupDir) { current, total ->
+                                    conversionProgress[chapter.id] = (current * 100 / total).coerceIn(0, 100)
+                                    updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADING, downloadProgress = conversionProgress[item.chapter.id] ?: 0) else item }, conversionProgress = conversionProgress.toMap()) }
+                                }
+                                conversionProgress.remove(chapter.id)
+                                updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADED, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
+                            }
+                        }
+                    }
+                }
             }
 
             // Start observe tracking since it only needs mangaId
@@ -1069,6 +1102,7 @@ class MangaScreenModel(
         manga: Manga,
         // SY -->
         mergedData: MergedMangaData?,
+        conversionProgress: Map<Long, Int> = emptyMap(),
         // SY <--
     ): List<ChapterList.Item> {
         val isLocal = manga.isLocal()
@@ -1102,13 +1136,14 @@ class MangaScreenModel(
             val downloadState = when {
                 activeDownload != null -> activeDownload.status
                 downloaded -> Download.State.DOWNLOADED
+                conversionProgress.contains(chapter.id) -> Download.State.DOWNLOADING
                 else -> Download.State.NOT_DOWNLOADED
             }
 
             ChapterList.Item(
                 chapter = chapter,
                 downloadState = downloadState,
-                downloadProgress = activeDownload?.progress ?: 0,
+                downloadProgress = activeDownload?.progress ?: conversionProgress[chapter.id] ?: 0,
                 selected = chapter.id in selectedChapterIds,
                 // SY -->
                 sourceName = source?.getNameForMangaInfo(),
@@ -2024,6 +2059,7 @@ class MangaScreenModel(
              */
             val relatedMangaCollection: List<RelatedManga>? = null,
             val seedColor: Color? = manga.asMangaCover().vibrantCoverColor?.let { Color(it) },
+            val conversionProgress: Map<Long, Int> = emptyMap(),
             // KMK <--
         ) : State {
             // KMK -->

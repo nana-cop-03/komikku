@@ -1,7 +1,6 @@
 package mihon.core.archive
 
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import logcat.logcat
@@ -34,7 +33,6 @@ class PdfReader(private val parcelFileDescriptor: ParcelFileDescriptor) : Closea
                 val page = pdfRenderer.openPage(pageIndex)
                 return try {
                     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                    bitmap.eraseColor(Color.WHITE) // Fill with white background
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     bitmap
                 } finally {
