@@ -26,11 +26,15 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -39,6 +43,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.surfaceColorAtElevation
@@ -730,8 +735,67 @@ class ReaderActivity : BaseActivity() {
                             Text(text = stringResource(MR.strings.action_ok))
                         }
                     },
-                    title = { Text(text = stringResource(SYMR.strings.eh_autoscroll_help)) },
-                    text = { Text(text = stringResource(SYMR.strings.eh_autoscroll_help_message)) },
+                    title = { Text(text = stringResource(SYMR.strings.eh_autoscroll)) },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            // Speed slider (0.5 - 5.0 seconds)
+                            val currentSpeed = state.ehAutoscrollFreq.toFloatOrNull() ?: 2.0f
+                            var sliderValue by remember { mutableStateOf(currentSpeed) }
+
+                            Text(
+                                text = stringResource(SYMR.strings.eh_autoscroll) + ": ${String.format("%.1f", sliderValue)}s",
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+
+                            androidx.compose.material3.Slider(
+                                value = sliderValue,
+                                onValueChange = {
+                                    sliderValue = it
+                                    viewModel.setAutoScrollFrequency(String.format("%.1f", it))
+                                },
+                                valueRange = 0.5f..5.0f,
+                                steps = 8,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+
+                            // Preset buttons
+                            Text(
+                                text = "Presets:",
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                listOf(0.5f, 1.0f, 1.5f, 2.0f, 3.0f, 4.0f, 5.0f).forEach { preset ->
+                                    androidx.compose.material3.AssistChip(
+                                        onClick = {
+                                            sliderValue = preset
+                                            viewModel.setAutoScrollFrequency(String.format("%.1f", preset))
+                                        },
+                                        label = { Text("${preset}s") },
+                                        modifier = Modifier.padding(4.dp),
+                                    )
+                                }
+                            }
+
+                            // Info text
+                            Text(
+                                text = stringResource(SYMR.strings.eh_autoscroll_help_message),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(0.9f),
                 )
                 ReaderViewModel.Dialog.BoostPageHelp -> AlertDialog(
                     onDismissRequest = onDismissRequest,
@@ -870,7 +934,7 @@ class ReaderActivity : BaseActivity() {
                 if (enabled) {
                     repeatOnLifecycle(Lifecycle.State.STARTED) {
                         val interval = intervalFloat.seconds
-                        
+
                         while (true) {
                             // Continue autoscroll regardless of menu visibility
                             // Menu visibility changes don't interrupt autoscroll
