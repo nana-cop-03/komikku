@@ -1611,7 +1611,7 @@ class MangaScreenModel(
 
                     // Generate new chapter directory name
                     var newChapterDirName = downloadProvider.getChapterDirName(newName, chapter.scanlator)
-                    if (oldChapterDir.isFile && oldChapterDir.extension == "cbz") {
+                    if (oldChapterDir.isFile && oldChapterDir.name?.endsWith(".cbz") == true) {
                         newChapterDirName += ".cbz"
                     }
 
