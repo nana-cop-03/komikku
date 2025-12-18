@@ -33,8 +33,21 @@ if [ ! -f "$APK_FILE" ]; then
     exit 1
 fi
 
-# Get file size in MB
+# Get file size in MB and bytes
 APK_SIZE=$(du -h "$APK_FILE" | cut -f1)
+APK_SIZE_BYTES=$(stat -f%z "$APK_FILE" 2>/dev/null || stat -c%s "$APK_FILE" 2>/dev/null || echo 0)
+APK_SIZE_MB=$((APK_SIZE_BYTES / 1024 / 1024))
+
+# Check if file exceeds Telegram's 50MB limit
+if [ "$APK_SIZE_MB" -gt 50 ]; then
+    echo "❌ Error: APK file is too large for Telegram (${APK_SIZE_MB}MB > 50MB limit)"
+    echo ""
+    echo "⚠️  Solutions:"
+    echo "   1. Enable ProGuard/R8 minification in build.gradle.kts"
+    echo "   2. Send architecture-specific APK (arm64-v8a is smaller)"
+    echo "   3. Upload to GitHub Releases and share the link instead"
+    exit 1
+fi
 
 # Extract filename
 APK_FILENAME=$(basename "$APK_FILE")

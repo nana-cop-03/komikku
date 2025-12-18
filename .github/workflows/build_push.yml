@@ -82,10 +82,16 @@ jobs:
           echo "COMMIT_COUNT=$commit_count"
           echo "COMMIT_COUNT=$commit_count" >> $GITHUB_OUTPUT
           
-          # Find the universal APK (app-universal-preview.apk)
-          APK_PATH=$(find app/build/outputs/apk/preview -name "app-universal-preview.apk" -type f | head -1)
+          # Prefer arm64-v8a APK (smaller than universal, works on most modern phones)
+          APK_PATH=$(find app/build/outputs/apk/preview -name "app-arm64-v8a-preview.apk" -type f | head -1)
+          
+          # Fallback to universal if arm64 not found
           if [ -z "$APK_PATH" ]; then
-            echo "Error: Universal APK not found"
+            APK_PATH=$(find app/build/outputs/apk/preview -name "app-universal-preview.apk" -type f | head -1)
+          fi
+          
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: APK not found"
             echo "Available APKs:"
             find app/build/outputs/apk/preview -type f -name "*.apk"
             exit 1
@@ -108,13 +114,9 @@ jobs:
       - name: Send APK to Telegram
         if: success()
         run: |
-          chmod +x scripts/send-to-telegram.sh
-          ./scripts/send-to-telegram.sh \
+          python3 scripts/send-to-telegram.py \
             "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
             "${{ secrets.TELEGRAM_CHAT_ID }}" \
             "Nana-Comik-${{ steps.current_commit.outputs.VERSION_TAG }}-r${{ steps.current_commit.outputs.COMMIT_COUNT }}.apk" \
             "${{ steps.current_commit.outputs.VERSION_TAG }}" \
             "${{ steps.current_commit.outputs.COMMIT_COUNT }}"
-        env:
-          GITHUB_REPO: ${{ github.repository }}
-          GITHUB_SERVER_URL: ${{ github.server_url }}
