@@ -48,6 +48,9 @@ android {
         }
     }
 
+
+
+
     buildTypes {
         val debug by getting {
             applicationIdSuffix = ".dev"
@@ -81,11 +84,9 @@ android {
 
             applicationIdSuffix = ".foss"
             signingConfig =
-                if (project.hasProperty("enableReleaseSigning")) {
-                    signingConfigs.getByName("release")
-                } else {
-                    null
-                }
+            if (project.hasProperty("enableReleaseSigning"))
+                signingConfigs.getByName("release")
+            else null
 
             matchingFallbacks.addAll(commonMatchingFallbacks)
         }
@@ -95,14 +96,14 @@ android {
             applicationIdSuffix = ".beta"
             versionNameSuffix = debug.versionNameSuffix
 
-            signingConfig = null // ✅ KEY FIX
+            signingConfig = null   // ✅ KEY FIX
 
             matchingFallbacks.addAll(commonMatchingFallbacks)
 
             buildConfigField(
                 "String",
                 "BUILD_TIME",
-                "\"${getBuildTime(useLastCommitTime = false)}\"",
+                "\"${getBuildTime(useLastCommitTime = false)}\""
             )
         }
 
