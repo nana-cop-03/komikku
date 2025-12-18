@@ -118,6 +118,7 @@ import exh.ui.metadata.adapters.MangaDexDescription
 import exh.ui.metadata.adapters.NHentaiDescription
 import exh.ui.metadata.adapters.PururinDescription
 import exh.ui.metadata.adapters.TsuminoDescription
+import kotlinx.coroutines.delay
 import tachiyomi.domain.chapter.model.Chapter
 import tachiyomi.domain.chapter.service.missingChaptersCount
 import tachiyomi.domain.library.service.LibraryPreferences
@@ -143,7 +144,6 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.delay
 
 // SY -->
 typealias MetadataDescriptionComposable = @Composable (
@@ -520,60 +520,51 @@ private fun MangaScreenSmallImpl(
         }
     }
 
-    // ktlint-disable
     @Composable
-    private fun RenameDialog() {
-        if (showRenameDialog) {
-            val focusRequester = remember { FocusRequester() }
-            AlertDialog(
-                onDismissRequest = { showRenameDialog = false },
-                confirmButton = {
-                    TextButton(
-                        enabled = renameText.isNotBlank(),
-                        onClick = {
-                            chapterToRename?.let { chapter ->
-                                onRenameChapter(chapter, renameText)
-                            }
-                            showRenameDialog = false
-                            chapterToRename = null
-                            renameText = ""
-                        },
-                    ) {
-                        Text(text = stringResource(MR.strings.action_ok))
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            showRenameDialog = false
-                            chapterToRename = null
-                            renameText = ""
-                        },
-                    ) {
-                        Text(text = stringResource(MR.strings.action_cancel))
-                    }
-                },
-                title = {
-                    Text(text = stringResource(MR.strings.action_edit))
-                },
-                text = {
-                    Column {
-                        OutlinedTextField(
-                            value = renameText,
-                            onValueChange = { renameText = it },
-                            label = { Text(text = stringResource(MR.strings.name)) },
-                            singleLine = true,
-                        )
-                    }
-                },
-            )
-            LaunchedEffect(focusRequester) {
-                delay(100.milliseconds)
-                focusRequester.requestFocus()
-            }
+    private fun RenameDialogContent(
+        showDialog: Boolean,
+        text: String,
+        onTextChange: (String) -> Unit,
+        onConfirm: () -> Unit,
+        onDismiss: () -> Unit,
+    ) {
+        if (!showDialog) return
+
+        val focusRequester = remember { FocusRequester() }
+
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(
+                    enabled = text.isNotBlank(),
+                    onClick = onConfirm,
+                ) {
+                    Text(stringResource(MR.strings.action_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(MR.strings.action_cancel))
+                }
+            },
+            title = {
+                Text(stringResource(MR.strings.action_edit))
+            },
+            text = {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = onTextChange,
+                    label = { Text(stringResource(MR.strings.name)) },
+                    singleLine = true,
+                )
+            },
+        )
+
+        LaunchedEffect(Unit) {
+            delay(100.milliseconds)
+            focusRequester.requestFocus()
         }
     }
-    // ktlint-enable
 
     BackHandler(onBack = {
         if (isAnySelected) {
@@ -942,6 +933,25 @@ private fun MangaScreenSmallImpl(
             }
         }
     }
+
+    RenameDialogContent(
+        showDialog = showRenameDialog,
+        text = renameText,
+        onTextChange = { renameText = it },
+        onConfirm = {
+            chapterToRename?.let {
+                onRenameChapter(it, renameText)
+            }
+            showRenameDialog = false
+            chapterToRename = null
+            renameText = ""
+        },
+        onDismiss = {
+            showRenameDialog = false
+            chapterToRename = null
+            renameText = ""
+        },
+    )
 }
 
 @Composable
@@ -1540,57 +1550,3 @@ private fun LazyListScope.sharedChapterItems(
         }
     }
 }
-
-    RenameDialog()
-
-// SY -->
-
-    if (showRenameDialog) {
-        val focusRequester = remember { FocusRequester() }
-        AlertDialog(
-            onDismissRequest = { showRenameDialog = false },
-            confirmButton = {
-                TextButton(
-                    enabled = renameText.isNotBlank(),
-                    onClick = {
-                        chapterToRename?.let { chapter ->
-                            onRenameChapter(chapter, renameText)
-                        }
-                        showRenameDialog = false
-                        chapterToRename = null
-                        renameText = ""
-                    },
-                ) {
-                    Text(text = stringResource(MR.strings.action_ok))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showRenameDialog = false
-                        chapterToRename = null
-                        renameText = ""
-                    },
-                ) {
-                    Text(text = stringResource(MR.strings.action_cancel))
-                }
-            },
-            title = {
-                Text(text = stringResource(MR.strings.action_edit))
-            },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = renameText,
-                        onValueChange = { renameText = it },
-                        label = { Text(text = stringResource(MR.strings.name)) },
-                        singleLine = true,
-                    )
-                }
-            },
-        )
-        LaunchedEffect(focusRequester) {
-            delay(100.milliseconds)
-            focusRequester.requestFocus()
-        }
-    }
