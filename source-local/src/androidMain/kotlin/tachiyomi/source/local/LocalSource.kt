@@ -52,6 +52,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
+import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.time.Duration.Companion.days
@@ -430,7 +431,9 @@ actual class LocalSource(
             val images = mutableListOf<File>()
             for (i in 0 until pdf.pageCount) {
                 val bitmap = pdf.renderPage(i, width = 1200, height = 1600)
-                val imageFile = File(tempDir, "page${i + 1}.jpg")
+                val digitCount = pdf.pageCount.toString().length.coerceAtLeast(3)
+                val pageNumber = "%0${digitCount}d".format(Locale.ENGLISH, i + 1)
+                val imageFile = File(tempDir, "$pageNumber.jpg")
                 FileOutputStream(imageFile).use { out ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                 }
@@ -438,7 +441,9 @@ actual class LocalSource(
             }
             ZipOutputStream(zipFile.openOutputStream()).use { zipOut ->
                 images.forEachIndexed { index, file ->
-                    zipOut.putNextEntry(ZipEntry("page${index + 1}.jpg"))
+                    val digitCount = pdf.pageCount.toString().length.coerceAtLeast(3)
+                    val pageNumber = "%0${digitCount}d".format(Locale.ENGLISH, index + 1)
+                    zipOut.putNextEntry(ZipEntry("$pageNumber.jpg"))
                     file.inputStream().use { it.copyTo(zipOut) }
                     zipOut.closeEntry()
                 }
