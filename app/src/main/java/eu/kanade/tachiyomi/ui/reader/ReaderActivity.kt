@@ -27,9 +27,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,7 +42,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -79,7 +76,6 @@ import eu.kanade.presentation.reader.ReaderPageActionsDialog
 import eu.kanade.presentation.reader.ReadingModeSelectDialog
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.appbars.ReaderAppBars
-import eu.kanade.presentation.reader.autoscroll.AutoscrollFab
 import eu.kanade.presentation.reader.settings.ReaderSettingsDialog
 import eu.kanade.presentation.theme.TachiyomiTheme
 import eu.kanade.tachiyomi.R
@@ -625,12 +621,6 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 // SY -->
                 isExhToolsVisible = state.ehUtilsVisible,
                 onSetExhUtilsVisibility = viewModel::showEhUtils,
-                isAutoScroll = false, // Deprecated - using ScrollTimer
-                isAutoScrollEnabled = state.isAutoScrollEnabled,
-                onToggleAutoscroll = { scrollTimer.setActive(it) }, // Use ScrollTimer
-                autoScrollFrequency = "0.5", // Deprecated - using ScrollTimer preference
-                onSetAutoScrollFrequency = { /* Deprecated - ScrollTimer reads preference directly */ },
-                onClickAutoScrollHelp = { /* Removed - ScrollTimer UI is self-contained */ },
                 onClickRetryAll = ::exhRetryAll,
                 onClickRetryAllHelp = viewModel::openRetryAllHelp,
                 onClickBoostPage = ::exhBoostPage,
@@ -776,7 +766,7 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                     )
                 }
                 // SY -->
-                ReaderViewModel.Dialog.AutoScrollHelp -> {} // Removed - ScrollTimer UI is self-contained
+                ReaderViewModel.Dialog.AutoScrollHelp -> {} // Placeholder - removed
                 ReaderViewModel.Dialog.BoostPageHelp -> AlertDialog(
                     onDismissRequest = onDismissRequest,
                     confirmButton = {
@@ -800,23 +790,6 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 // SY <--
                 null -> {}
             }
-
-            // KMK --> Autoscroll controls with ScrollTimer
-            val autoscrollActive by scrollTimer.isActive.collectAsState()
-            if (state.isAutoScrollEnabled && (state.viewer is WebtoonViewer || state.viewer is VerticalPagerViewer)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.BottomEnd,
-                ) {
-                    AutoscrollFab(
-                        isActive = autoscrollActive,
-                        onToggle = { scrollTimer.setActive(it) },
-                    )
-                }
-            }
-            // KMK <--
         }
 
         // KMK -->

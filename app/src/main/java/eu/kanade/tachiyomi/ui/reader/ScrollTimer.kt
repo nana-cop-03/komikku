@@ -6,11 +6,15 @@ import android.view.MotionEvent
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
@@ -22,15 +26,8 @@ private const val INTERACTION_SKIP_MS = 2_000L
 private const val SPEED_FACTOR_DELTA = 0.02f
 
 /**
- * Autoscroll timer for reader.
- * Based on Kotatsu's implementation.
- *
- * Speed is normalized 0.0-1.0 where:
- * - 0.0 = stopped
- * - 0.5 = moderate scroll
- * - 1.0 = maximum scroll speed
- *
- * The speed represents screen height scrolled per second, not page count.
+ * Autoscroll timer for reader - based on Kotatsu implementation.
+ * Speed is normalized 0.0-1.0 where higher = faster scroll.
  */
 class ScrollTimer(
     resources: Resources,
@@ -47,19 +44,18 @@ class ScrollTimer(
     private var resumeAt = 0L
     private var isTouchDown = MutableStateFlow(false)
     private val isRunning = MutableStateFlow(false)
-    private val scrollDelta = resources.displayMetrics.run {
-        (heightPixels * 0.01f).toInt().coerceAtLeast(1) // ~1% of screen height
-    }
+    private val scrollDelta = (resources.displayMetrics.heightPixels * 0.01f).toInt().coerceAtLeast(1)
 
     val isActive: StateFlow<Boolean>
         get() = isRunning
 
     init {
-        // Observe speed changes from preference
-        coroutineScope.launch {
-            val speedValue = readerPreferences.autoscrollInterval().get()
-            onSpeedChanged(speedValue)
-        }
+        readerPreferences.autoscrollInterval().changes()
+            .flowOn(Dispatchers.Default)
+            .onEach { speed ->
+                onSpeedChanged(speed)
+            }
+            .launchIn(coroutineScope)
     }
 
     fun setActive(value: Boolean) {
@@ -71,7 +67,6 @@ class ScrollTimer(
 
     fun onUserInteraction() {
         resumeAt = SystemClock.elapsedRealtime() + INTERACTION_SKIP_MS
-        listener.onUserInteraction()
     }
 
     fun onTouchEvent(event: MotionEvent) {
