@@ -470,6 +470,10 @@ actual class LocalSource(
         }
     }
 
+    fun getMangaDirectory(mangaUrl: String): UniFile? {
+        return fileSystem.getMangaDirectory(mangaUrl)
+    }
+
     private fun updateCover(chapter: SChapter, manga: SManga): UniFile? {
         return try {
             when (val format = getFormat(chapter)) {

@@ -507,11 +507,11 @@ class MangaScreenModel(
             screenModelScope.launch {
                 if (manga.isLocal()) {
                     val source = sourceManager.get(manga.source) as? LocalSource ?: return@launch
-                    for (item in chapterItems) {
+                    for (item in chapters) {
                         val chapter = item.chapter
                         val format = source.getFormat(chapter.toSChapter())
                         if (format is Format.Pdf) {
-                            val mangaDir = source.fileSystem.getMangaDirectory(manga.url) ?: continue
+                            val mangaDir = source.getMangaDirectory(manga.url) ?: continue
                             val chapterFile = mangaDir.findFile(chapter.name + ".pdf") ?: continue
                             val zipName = chapter.name + ".zip"
                             val zipFile = mangaDir.findFile(zipName)

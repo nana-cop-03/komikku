@@ -29,13 +29,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -577,7 +575,7 @@ private fun MangaScreenSmallImpl(
     })
 
     Scaffold(
-        topBar = {
+        topBar = { _ ->
             val selectedChapterCount: Int = remember(chapters) {
                 chapters.count { it.selected }
             }
@@ -1089,7 +1087,7 @@ private fun MangaScreenLargeImpl(
     })
 
     Scaffold(
-        topBar = {
+        topBar = { _ ->
             val selectedChapterCount = remember(chapters) {
                 chapters.count { it.selected }
             }
@@ -1408,7 +1406,7 @@ private fun MangaScreenLargeImpl(
                                 onDownloadChapter = onDownloadChapter,
                                 onChapterSelected = onChapterSelected,
                                 onChapterSwipe = onChapterSwipe,
-                                onChapterItemClick = onChapterItemClickFunction,
+                                onChapterItemClick = ::onChapterItemClickFunction,
                             )
                         }
                     }
@@ -1549,10 +1547,10 @@ private fun LazyListScope.sharedChapterItems(
                     },
                     onClick = {
                         onChapterItemClick(
-                            chapterItem = item,
-                            isAnyChapterSelected = isAnyChapterSelected,
-                            onToggleSelection = { onChapterSelected(item, !item.selected, true, false) },
-                            onChapterClicked = onChapterClicked,
+                            item,
+                            isAnyChapterSelected,
+                            { onChapterSelected(item, !item.selected, true, false) },
+                            onChapterClicked,
                         )
                     },
                     onDownloadClick = if (onDownloadChapter != null) {
