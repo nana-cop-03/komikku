@@ -870,24 +870,23 @@ class ReaderActivity : BaseActivity() {
                 if (enabled) {
                     repeatOnLifecycle(Lifecycle.State.STARTED) {
                         val interval = intervalFloat.seconds
+                        
                         while (true) {
-                            if (!viewModel.state.value.menuVisible) {
-                                viewModel.state.value.viewer.let { v ->
-                                    when (v) {
-                                        is PagerViewer -> v.moveToNext()
-                                        is WebtoonViewer -> {
-                                            if (readerPreferences.smoothAutoScroll().get()) {
-                                                v.linearScroll(interval)
-                                            } else {
-                                                v.scrollDown()
-                                            }
+                            // Continue autoscroll regardless of menu visibility
+                            // Menu visibility changes don't interrupt autoscroll
+                            viewModel.state.value.viewer.let { v ->
+                                when (v) {
+                                    is PagerViewer -> v.moveToNext()
+                                    is WebtoonViewer -> {
+                                        if (readerPreferences.smoothAutoScroll().get()) {
+                                            v.linearScroll(interval)
+                                        } else {
+                                            v.scrollDown()
                                         }
                                     }
                                 }
-                                delay(interval)
-                            } else {
-                                delay(100)
                             }
+                            delay(interval)
                         }
                     }
                 }
