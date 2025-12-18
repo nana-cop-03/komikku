@@ -11,12 +11,15 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Circle
+import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Done
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.FileDownloadOff
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -68,6 +71,9 @@ fun MangaChapterListItem(
     onDownloadClick: ((ChapterDownloadAction) -> Unit)?,
     onChapterSwipe: (LibraryPreferences.ChapterSwipeAction) -> Unit,
     modifier: Modifier = Modifier,
+    // KMK -->
+    formatType: String? = null,
+    // KMK <--
 ) {
     // KMK -->
     val swipeBackground = MaterialTheme.colorScheme.primaryContainer
@@ -139,6 +145,18 @@ fun MangaChapterListItem(
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
+                    // KMK -->
+                    if (!formatType.isNullOrEmpty()) {
+                        Icon(
+                            imageVector = getFormatIcon(formatType),
+                            contentDescription = formatType,
+                            modifier = Modifier
+                                .sizeIn(maxHeight = with(LocalDensity.current) { textHeight.toDp() - 2.dp })
+                                .padding(end = 2.dp),
+                            tint = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
+                    // KMK <--
                     Text(
                         text = title,
                         style = MaterialTheme.typography.bodyMedium,
@@ -268,3 +286,15 @@ internal fun swipeAction(
 }
 
 internal val swipeActionThreshold = 56.dp
+
+// KMK -->
+@Composable
+private fun getFormatIcon(formatType: String?): ImageVector {
+    return when {
+        formatType?.equals("cbz", ignoreCase = true) == true -> Icons.Outlined.Archive
+        formatType?.equals("zip", ignoreCase = true) == true -> Icons.Outlined.Archive
+        formatType?.equals("pdf", ignoreCase = true) == true -> Icons.Outlined.Description
+        else -> Icons.Outlined.Folder
+    }
+}
+// KMK <--

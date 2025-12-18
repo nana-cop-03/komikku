@@ -1563,8 +1563,23 @@ private fun LazyListScope.sharedChapterItems(
                     onChapterSwipe = {
                         onChapterSwipe(item, it)
                     },
+                    // KMK -->
+                    formatType = getChapterFormatType(item.chapter.name),
+                    // KMK <--
                 )
             }
         }
     }
 }
+
+// KMK -->
+private fun getChapterFormatType(chapterName: String): String? {
+    return when {
+        chapterName.endsWith(".cbz", ignoreCase = true) -> "cbz"
+        chapterName.endsWith(".zip", ignoreCase = true) -> "zip"
+        chapterName.endsWith(".pdf", ignoreCase = true) -> "pdf"
+        chapterName.endsWith(".epub", ignoreCase = true) -> "epub"
+        else -> null
+    }
+}
+// KMK <--
