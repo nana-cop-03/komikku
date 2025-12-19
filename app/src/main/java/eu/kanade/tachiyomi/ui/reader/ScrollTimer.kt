@@ -26,10 +26,6 @@ private const val MAX_SWITCH_DELAY = 10_000L
 private const val INTERACTION_SKIP_MS = 2_000L
 private const val SPEED_FACTOR_DELTA = 0.02f
 
-/**
- * Autoscroll timer for reader - based on Kotatsu implementation.
- * Speed is normalized 0.0-1.0 where higher = faster scroll.
- */
 class ScrollTimer(
     resources: Resources,
     private val listener: ReaderControlDelegate.OnInteractionListener,
@@ -39,13 +35,18 @@ class ScrollTimer(
 
     private val coroutineScope = lifecycleOwner.lifecycleScope
     private var job: Job? = null
-    private var delayMs: Long = 10L
-    var pageSwitchDelay: Long = 100L
+
+    private var delayMs: Long = 16L
+    var pageSwitchDelay: Long = 800L
         private set
+
     private var resumeAt = 0L
-    private var isTouchDown = MutableStateFlow(false)
+    private val isTouchDown = MutableStateFlow(false)
     private val isRunning = MutableStateFlow(false)
-    private val scrollDelta = (resources.displayMetrics.density * 2f).toInt().coerceAtLeast(1)
+
+    // ✅ Kotatsu-like constant dp-based movement
+    private val baseScrollDelta =
+        (resources.displayMetrics.density * 5f).toInt().coerceAtLeast(1)
 
     val isActive: StateFlow<Boolean>
         get() = isRunning
@@ -72,15 +73,10 @@ class ScrollTimer(
 
     fun onTouchEvent(event: MotionEvent) {
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                isTouchDown.value = true
-            }
-
+            MotionEvent.ACTION_DOWN -> isTouchDown.value = true
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_CANCEL,
-            -> {
-                isTouchDown.value = false
-            }
+            -> isTouchDown.value = false
         }
     }
 
@@ -88,44 +84,56 @@ class ScrollTimer(
         if (speed <= 0f) {
             delayMs = 0L
             pageSwitchDelay = 0L
-        } else {
-            val eased = speed * speed  // quadratic easing
-            delayMs = (MAX_DELAY * (1f - eased)).roundToLong().coerceAtLeast(4L)
-            pageSwitchDelay = (MAX_SWITCH_DELAY * (1f - eased)).roundToLong().coerceAtLeast(300L)
+            return
         }
-        if ((job == null) != (delayMs == 0L)) {
-            restartJob()
-        }
+
+        // ✅ Quadratic easing (gentle low, fast high)
+        val eased = speed * speed
+
+        delayMs = (MAX_DELAY * (1f - eased))
+            .roundToLong()
+            .coerceIn(6L, MAX_DELAY)
+
+        pageSwitchDelay = (MAX_SWITCH_DELAY * (1f - eased))
+            .roundToLong()
+            .coerceAtLeast(400L)
+
+        restartJob()
     }
 
     private fun restartJob() {
         job?.cancel()
         resumeAt = 0L
+
         if (!isRunning.value || delayMs == 0L) {
             job = null
             return
         }
+
         job = coroutineScope.launch(Dispatchers.Default) {
             var accumulator = 0L
             var speedFactor = 1f
+
             while (isActive) {
+                // Smooth pause / resume
                 if (isPaused()) {
                     speedFactor = (speedFactor - SPEED_FACTOR_DELTA).coerceAtLeast(0f)
                 } else if (speedFactor < 1f) {
                     speedFactor = (speedFactor + SPEED_FACTOR_DELTA).coerceAtMost(1f)
                 }
-                if (speedFactor == 1f) {
-                    delay(delayMs)
-                } else if (speedFactor == 0f) {
+
+                if (speedFactor == 0f) {
                     delayUntilResumed()
                     continue
-                } else {
-                    delay((delayMs * (1f + speedFactor * 2)).toLong())
                 }
+
+                delay(delayMs)
+
                 withContext(Dispatchers.Main) {
                     if (!listener.isReaderResumed()) return@withContext
 
-                    if (!listener.scrollBy(scrollDelta, true)) {
+                    // ✅ IMPORTANT: do NOT scale delta by speedFactor
+                    if (!listener.scrollBy(baseScrollDelta, true)) {
                         accumulator += delayMs
                     }
 
@@ -134,6 +142,7 @@ class ScrollTimer(
                         accumulator -= pageSwitchDelay
                     }
                 }
+
                 yield()
             }
         }
@@ -146,11 +155,7 @@ class ScrollTimer(
     private suspend fun delayUntilResumed() {
         while (isPaused()) {
             val delayTime = resumeAt - SystemClock.elapsedRealtime()
-            if (delayTime > 0) {
-                delay(delayTime)
-            } else {
-                yield()
-            }
+            if (delayTime > 0) delay(delayTime) else yield()
             isTouchDown.first { !it }
         }
     }
