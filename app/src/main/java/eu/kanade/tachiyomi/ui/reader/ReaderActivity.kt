@@ -661,7 +661,7 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 // KMK --> Add autoscroll
                 isAutoscrollEnabled = isAutoscrollEnabled,
                 onToggleAutoscroll = {
-                    val newState = !isAutoscrollEnabled.value
+                    val newState = !isAutoscrollEnabled
                     scrollTimer.setActive(newState)
                     // Open settings dialog when enabling autoscroll
                     if (newState) {

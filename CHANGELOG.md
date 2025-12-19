@@ -13,18 +13,29 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 ### Added
 - PDF reading support for local sources
+- **Autoscroll feature for reader** - Automatic page scrolling with adjustable speed (Kotatsu-style implementation)
+- Autoscroll settings popup dialog with speed slider and preset buttons
+- Autoscroll toggle in Reader Bottom Buttons (enable/disable from Settings > Reader > Reader Bottom Buttons)
+- Bookmark button in reader bottom action bar
+- Save image button in reader bottom action bar
+- Reading statistics display in reader toolbar
+- Support for customizable reader bottom button layout
 
 ### Changed
 - Delegate Suwayomi tracker authentication to extension ([@cpiber](https://github.com/cpiber)) ([#2476](https://github.com/mihonapp/mihon/pull/2476))
+- Reader bottom bar redesigned with action buttons moved to bottom for easier access
 
 ### Improved
 - Spoofing of `X-Requested-With` header to support newer WebView versions ([@Guzmazow](https://github.com/Guzmazow)) ([#2491](https://github.com/mihonapp/mihon/pull/2491))
+- Autoscroll implementation uses proven Kotatsu algorithm with proper touch handling and speed ramping
 
-### Fixes
+### Fixed
 - Fix height of description not being calculated correctly if images are present ([@Secozzi](https://github.com/Secozzi)) ([#2382](https://github.com/mihonapp/mihon/pull/2382))
 - Fix migration progress not updating after manual search ([@Secozzi](https://github.com/Secozzi)) ([#2484](https://github.com/mihonapp/mihon/pull/2484))
 - Fix category migration flag being ignored due to incorrect check against chapter flag ([@Secozzi](https://github.com/Secozzi)) ([#2484](https://github.com/mihonapp/mihon/pull/2484))
 - Fix disabling incognito mode from notification ([@NGB-Was-Taken](https://github.com/NGB-Was-Taken)) ([#2512](https://github.com/mihonapp/mihon/pull/2512))
+- Fix autoscroll button crash and state management issues
+- Fix reader bottom buttons not responding correctly to state changes
 
 ## [v0.19.1] - 2025-08-07
 ### Changed
