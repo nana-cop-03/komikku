@@ -45,7 +45,7 @@ class ScrollTimer(
     private var resumeAt = 0L
     private var isTouchDown = MutableStateFlow(false)
     private val isRunning = MutableStateFlow(false)
-    private val scrollDelta = (resources.displayMetrics.heightPixels * 0.01f).toInt().coerceAtLeast(1)
+    private val scrollDelta = (resources.displayMetrics.density * 2f).toInt().coerceAtLeast(1)
 
     val isActive: StateFlow<Boolean>
         get() = isRunning
@@ -89,9 +89,9 @@ class ScrollTimer(
             delayMs = 0L
             pageSwitchDelay = 0L
         } else {
-            val speedFactor = 1f - speed
-            delayMs = (MAX_DELAY * speedFactor).roundToLong()
-            pageSwitchDelay = (MAX_SWITCH_DELAY * speedFactor).roundToLong()
+            val eased = speed * speed  // quadratic easing
+            delayMs = (MAX_DELAY * (1f - eased)).roundToLong().coerceAtLeast(4L)
+            pageSwitchDelay = (MAX_SWITCH_DELAY * (1f - eased)).roundToLong().coerceAtLeast(300L)
         }
         if ((job == null) != (delayMs == 0L)) {
             restartJob()
@@ -125,7 +125,7 @@ class ScrollTimer(
                 withContext(Dispatchers.Main) {
                     if (!listener.isReaderResumed()) return@withContext
 
-                    if (!listener.scrollBy(scrollDelta, false)) {
+                    if (!listener.scrollBy(scrollDelta, true)) {
                         accumulator += delayMs
                     }
 
