@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlin.math.roundToLong
 
@@ -104,7 +105,7 @@ class ScrollTimer(
             job = null
             return
         }
-        job = coroutineScope.launch {
+        job = coroutineScope.launch(Dispatchers.Default) {
             var accumulator = 0L
             var speedFactor = 1f
             while (isActive) {
@@ -121,16 +122,19 @@ class ScrollTimer(
                 } else {
                     delay((delayMs * (1f + speedFactor * 2)).toLong())
                 }
-                if (!listener.isReaderResumed()) {
-                    continue
+                withContext(Dispatchers.Main) {
+                    if (!listener.isReaderResumed()) return@withContext
+
+                    if (!listener.scrollBy(scrollDelta, false)) {
+                        accumulator += delayMs
+                    }
+
+                    if (accumulator >= pageSwitchDelay) {
+                        listener.switchPageBy(1)
+                        accumulator -= pageSwitchDelay
+                    }
                 }
-                if (!listener.scrollBy(scrollDelta, false)) {
-                    accumulator += delayMs
-                }
-                if (accumulator >= pageSwitchDelay) {
-                    listener.switchPageBy(1)
-                    accumulator -= pageSwitchDelay
-                }
+                yield()
             }
         }
     }
