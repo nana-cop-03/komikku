@@ -76,6 +76,7 @@ import eu.kanade.presentation.reader.ReaderPageActionsDialog
 import eu.kanade.presentation.reader.ReadingModeSelectDialog
 import eu.kanade.presentation.reader.appbars.NavBarType
 import eu.kanade.presentation.reader.appbars.ReaderAppBars
+import eu.kanade.presentation.reader.autoscroll.AutoscrollSettingsDialog
 import eu.kanade.presentation.reader.settings.ReaderSettingsDialog
 import eu.kanade.presentation.theme.TachiyomiTheme
 import eu.kanade.tachiyomi.R
@@ -659,7 +660,14 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 onClickShiftPage = ::shiftDoublePages,
                 // KMK --> Add autoscroll
                 isAutoscrollEnabled = isAutoscrollEnabled,
-                onToggleAutoscroll = { scrollTimer.setActive(!isAutoscrollEnabled) },
+                onToggleAutoscroll = {
+                    val newState = !isAutoscrollEnabled.value
+                    scrollTimer.setActive(newState)
+                    // Open settings dialog when enabling autoscroll
+                    if (newState) {
+                        viewModel.openAutoScrollHelpDialog()
+                    }
+                },
                 // KMK <--
                 // SY <--
             )
@@ -779,7 +787,17 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                     )
                 }
                 // SY -->
-                ReaderViewModel.Dialog.AutoScrollHelp -> {} // Placeholder - removed
+                ReaderViewModel.Dialog.AutoScrollHelp -> {
+                    val autoscrollSpeed by readerPreferences.autoscrollInterval().collectAsState()
+                    AutoscrollSettingsDialog(
+                        currentSpeed = (autoscrollSpeed - 0.1f) / 10.9f,
+                        onSpeedChange = { normalizedSpeed ->
+                            val actualSpeed = 0.1f + (normalizedSpeed * 10.9f)
+                            readerPreferences.autoscrollInterval().set(actualSpeed)
+                        },
+                        onDismissRequest = onDismissRequest,
+                    )
+                }
                 ReaderViewModel.Dialog.BoostPageHelp -> AlertDialog(
                     onDismissRequest = onDismissRequest,
                     confirmButton = {
