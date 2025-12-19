@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -545,6 +546,15 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
 
             // KMK --> Collect autoscroll state
             val isAutoscrollEnabled by scrollTimer.isActive.collectAsState()
+            // KMK --> Track previous state to detect when autoscroll is enabled
+            var wasAutoscrollEnabled by remember { mutableStateOf(false) }
+            LaunchedEffect(isAutoscrollEnabled) {
+                if (isAutoscrollEnabled && !wasAutoscrollEnabled) {
+                    // Autoscroll just turned on - open settings dialog
+                    viewModel.openAutoScrollHelpDialog()
+                }
+                wasAutoscrollEnabled = isAutoscrollEnabled
+            }
             // KMK --> Collect reading stats
             val readingStats = remember(state.viewerChapters) {
                 viewModel.getReadingStats()
@@ -661,12 +671,7 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 // KMK --> Add autoscroll
                 isAutoscrollEnabled = isAutoscrollEnabled,
                 onToggleAutoscroll = {
-                    val newState = !isAutoscrollEnabled
-                    scrollTimer.setActive(newState)
-                    // Open settings dialog when enabling autoscroll
-                    if (newState) {
-                        viewModel.openAutoScrollHelpDialog()
-                    }
+                    scrollTimer.setActive(!isAutoscrollEnabled)
                 },
                 // KMK <--
                 // SY <--
