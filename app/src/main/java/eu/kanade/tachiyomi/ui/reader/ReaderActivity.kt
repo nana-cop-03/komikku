@@ -230,6 +230,9 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
         binding = ReaderActivityBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Initialize ScrollTimer for autoscroll BEFORE initializeMenu()
+        scrollTimer = ScrollTimer(resources, this, this, readerPreferences)
+
         if (viewModel.needsInit()) {
             val manga = intent.extras?.getLong("manga", -1) ?: -1L
             val chapter = intent.extras?.getLong("chapter", -1) ?: -1L
@@ -309,9 +312,6 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 }
             }
             .launchIn(lifecycleScope)
-
-        // Initialize ScrollTimer for autoscroll
-        scrollTimer = ScrollTimer(resources, this, this, readerPreferences)
     }
 
     // ========== OnInteractionListener Implementation ==========
