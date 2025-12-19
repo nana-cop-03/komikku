@@ -33,10 +33,12 @@ import kotlin.math.abs
 /**
  * Dialog for autoscroll speed settings.
  * Positioned above bottom bar like Kotatsu for easier thumb reach.
- * Includes speed slider and FAB visibility toggle.
+ * Includes on/off toggle, speed slider and FAB visibility toggle.
  */
 @Composable
 fun AutoscrollSettingsDialog(
+    isEnabled: Boolean = false,
+    onToggleEnabled: (Boolean) -> Unit = {},
     currentSpeed: Float,
     onSpeedChange: (Float) -> Unit,
     onDismissRequest: () -> Unit,
@@ -46,6 +48,7 @@ fun AutoscrollSettingsDialog(
     // Speed value (0.000001 to 0.97) - continuous range like Kotatsu
     var sliderValue by remember { mutableStateOf(currentSpeed) }
     var showFab by remember { mutableStateOf(showFabButton) }
+    var isAutoscrollEnabled by remember { mutableStateOf(isEnabled) }
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -92,6 +95,28 @@ fun AutoscrollSettingsDialog(
                             contentDescription = stringResource(MR.strings.action_close),
                         )
                     }
+                }
+
+                // Enable/Disable toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(SYMR.strings.eh_autoscroll),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Checkbox(
+                        checked = isAutoscrollEnabled,
+                        onCheckedChange = { isChecked ->
+                            isAutoscrollEnabled = isChecked
+                            onToggleEnabled(isChecked)
+                        },
+                    )
                 }
 
                 // Speed label

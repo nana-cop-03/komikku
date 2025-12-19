@@ -409,9 +409,9 @@ actual class LocalSource(
         }
     }
 
-    suspend fun convertPdfToZip(
+    suspend fun convertPdfToCbz(
         pdfFile: UniFile,
-        zipFile: UniFile,
+        cbzFile: UniFile,
         backupDir: UniFile,
         onProgress: (Int, Int) -> Unit = { _, _ -> },
     ) = withIOContext {
@@ -455,7 +455,7 @@ actual class LocalSource(
                 onProgress(i + 1, pdf.pageCount)
             }
 
-            ZipOutputStream(zipFile.openOutputStream()).use { zipOut ->
+            ZipOutputStream(cbzFile.openOutputStream()).use { zipOut ->
                 images.forEachIndexed { index, file ->
                     val digitCount = pdf.pageCount.toString().length.coerceAtLeast(3)
                     val pageNumber = "%0${digitCount}d".format(Locale.ENGLISH, index + 1)

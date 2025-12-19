@@ -804,6 +804,10 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                     val autoscrollSpeed by readerPreferences.autoscrollInterval().collectAsState()
                     val showFab by readerPreferences.autoscrollShowFab().collectAsState()
                     AutoscrollSettingsDialog(
+                        isEnabled = isAutoscrollEnabled,
+                        onToggleEnabled = { isEnabled ->
+                            scrollTimer.setActive(isEnabled)
+                        },
                         currentSpeed = (autoscrollSpeed - 0.1f) / 10.9f,
                         onSpeedChange = { normalizedSpeed ->
                             val actualSpeed = 0.1f + (normalizedSpeed * 10.9f)

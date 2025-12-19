@@ -515,24 +515,24 @@ class MangaScreenModel(
                             if (format is Format.Pdf) {
                                 val mangaDir = source.getMangaDirectory(manga.url) ?: continue
                                 val chapterFile = mangaDir.findFile(chapter.name + ".pdf") ?: continue
-                                val zipName = chapter.name + ".zip"
-                                var zipFile = mangaDir.findFile(zipName)
+                                val cbzName = chapter.name + ".cbz"
+                                var cbzFile = mangaDir.findFile(cbzName)
 
                                 // Clean up incomplete conversions (e.g., if user exited during conversion)
-                                if (zipFile != null && zipFile.length() == 0L) {
+                                if (cbzFile != null && cbzFile.length() == 0L) {
                                     logcat(LogPriority.WARN) { "Found incomplete conversion for ${chapter.name}, removing..." }
-                                    zipFile.delete()
-                                    zipFile = null
+                                    cbzFile.delete()
+                                    cbzFile = null
                                 }
 
-                                if (zipFile == null) {
+                                if (cbzFile == null) {
                                     val backupDir = mangaDir.createDirectory(".backupfiles_pdf") ?: mangaDir
-                                    val zipFileCreated = mangaDir.createFile(zipName) ?: continue
+                                    val cbzFileCreated = mangaDir.createFile(cbzName) ?: continue
                                     conversionProgress[chapter.id] = 0
                                     updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADING, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
 
                                     try {
-                                        source.convertPdfToZip(chapterFile, zipFileCreated, backupDir) { current, total ->
+                                        source.convertPdfToCbz(chapterFile, cbzFileCreated, backupDir) { current, total ->
                                             conversionProgress[chapter.id] = (current * 100 / total).coerceIn(0, 100)
                                             updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADING, downloadProgress = conversionProgress[item.chapter.id] ?: 0) else item }, conversionProgress = conversionProgress.toMap()) }
                                         }
@@ -540,9 +540,9 @@ class MangaScreenModel(
                                         updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADED, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
                                     } catch (e: Exception) {
                                         logcat(LogPriority.ERROR, e) { "Error converting PDF for ${chapter.name}" }
-                                        // Clean up incomplete zip file
-                                        if (zipFileCreated.exists()) {
-                                            zipFileCreated.delete()
+                                        // Clean up incomplete cbz file
+                                        if (cbzFileCreated.exists()) {
+                                            cbzFileCreated.delete()
                                         }
                                         conversionProgress.remove(chapter.id)
                                         updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.NOT_DOWNLOADED, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
