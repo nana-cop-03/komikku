@@ -160,6 +160,8 @@
     <string name="autoscroll">Autoscroll</string>
     <string name="speed">Speed</string>
     <string name="show_floating_control_button">Show floating control button</string>
+    <string name="chapters">Chapters</string>
+    <string name="storage_usage">Storage Used: %s</string>
     <string name="action_open_log">Open log</string>
     <string name="action_show_errors">Tap to see details</string>
     <string name="action_restore">Restore</string>

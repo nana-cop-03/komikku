@@ -1,5 +1,6 @@
 package eu.kanade.presentation.manga.components
 
+import android.text.format.Formatter
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,10 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import eu.kanade.tachiyomi.util.storage.DiskUtil
 import tachiyomi.i18n.MR
 import tachiyomi.presentation.core.components.material.SECONDARY_ALPHA
 import tachiyomi.presentation.core.components.material.padding
@@ -27,6 +31,12 @@ fun ChapterHeader(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val storageInfo = remember {
+        val size = DiskUtil.getDirectorySize(context.cacheDir.parentFile)
+        Formatter.formatFileSize(context, size)
+    }
+
     Row(
         // KMK <--
         modifier = modifier
@@ -55,6 +65,15 @@ fun ChapterHeader(
             )
 
             MissingChaptersWarning(missingChapterCount)
+
+            // Storage usage display
+            Text(
+                text = stringResource(MR.strings.storage_usage, storageInfo),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = SECONDARY_ALPHA),
+            )
         }
     }
 }
