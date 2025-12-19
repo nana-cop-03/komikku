@@ -1,6 +1,7 @@
 package eu.kanade.presentation.reader.appbars
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -64,6 +65,7 @@ fun BottomReaderBar(
     // KMK --> Add autoscroll
     isAutoscrollEnabled: Boolean = false,
     onToggleAutoscroll: (() -> Unit)? = null,
+    onAutoscrollLongPress: (() -> Unit)? = null,
     // KMK <--
     // SY <--
 ) {
@@ -110,9 +112,15 @@ fun BottomReaderBar(
             }
         }
 
-        // KMK --> Autoscroll button
+        // KMK --> Autoscroll button with long-press support
         if (ReaderBottomButton.Autoscroll.isIn(enabledButtons) && onToggleAutoscroll != null) {
-            IconButton(onClick = onToggleAutoscroll) {
+            IconButton(
+                onClick = onToggleAutoscroll,
+                modifier = Modifier.combinedClickable(
+                    onClick = { onToggleAutoscroll.invoke() },
+                    onLongClick = { onAutoscrollLongPress?.invoke() },
+                ),
+            ) {
                 Icon(
                     imageVector = if (isAutoscrollEnabled) {
                         Icons.Filled.Timer

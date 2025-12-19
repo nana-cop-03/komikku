@@ -404,6 +404,19 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
     }
 
     /**
+     * Intercept touch events to pause autoscroll temporarily when user taps screen.
+     * This allows menus to show and user interactions to be smooth.
+     */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN && ::scrollTimer.isInitialized) {
+            // KMK --> Pause autoscroll on screen tap to show menus
+            scrollTimer.onUserInteraction()
+            // KMK <--
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    /**
      * Called when the window focus changes. It sets the menu visibility to the last known state
      * to apply immersive mode again if needed.
      */
@@ -661,10 +674,11 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 // KMK --> Add autoscroll
                 isAutoscrollEnabled = isAutoscrollEnabled,
                 onToggleAutoscroll = {
-                    if (!isAutoscrollEnabled) {
-                        // Opening autoscroll, show dialog first
-                        viewModel.openAutoScrollHelpDialog()
-                    }
+                    // Only open/close the settings popup, don't auto-start scrolling
+                    viewModel.openAutoScrollHelpDialog()
+                },
+                onAutoscrollLongPress = {
+                    // Long press: toggle autoscroll directly without opening dialog
                     scrollTimer.setActive(!isAutoscrollEnabled)
                 },
                 // KMK <--
@@ -788,11 +802,16 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 // SY -->
                 ReaderViewModel.Dialog.AutoScrollHelp -> {
                     val autoscrollSpeed by readerPreferences.autoscrollInterval().collectAsState()
+                    val showFab by readerPreferences.autoscrollShowFab().collectAsState()
                     AutoscrollSettingsDialog(
                         currentSpeed = (autoscrollSpeed - 0.1f) / 10.9f,
                         onSpeedChange = { normalizedSpeed ->
                             val actualSpeed = 0.1f + (normalizedSpeed * 10.9f)
                             readerPreferences.autoscrollInterval().set(actualSpeed)
+                        },
+                        showFabButton = showFab,
+                        onShowFabChange = { newValue ->
+                            readerPreferences.autoscrollShowFab().set(newValue)
                         },
                         onDismissRequest = onDismissRequest,
                     )

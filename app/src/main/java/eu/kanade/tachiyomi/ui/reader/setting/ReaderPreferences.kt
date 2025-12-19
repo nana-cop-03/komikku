@@ -182,6 +182,8 @@ class ReaderPreferences(
 
     fun autoscrollInterval() = preferenceStore.getFloat("eh_util_autoscroll_interval", 3f)
 
+    fun autoscrollShowFab() = preferenceStore.getBoolean("eh_autoscroll_show_fab", false)
+
     fun smoothAutoScroll() = preferenceStore.getBoolean("smooth_auto_scroll", true)
 
     fun preserveReadingPosition() = preferenceStore.getBoolean("eh_preserve_reading_position", false)

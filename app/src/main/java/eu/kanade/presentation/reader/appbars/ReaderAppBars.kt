@@ -123,6 +123,7 @@ fun ReaderAppBars(
     // KMK --> Add autoscroll
     isAutoscrollEnabled: Boolean = false,
     onToggleAutoscroll: (() -> Unit)? = null,
+    onAutoscrollLongPress: (() -> Unit)? = null,
     // KMK <--
     // SY <--
 ) {
@@ -356,6 +357,7 @@ fun ReaderAppBars(
                         // KMK --> Add autoscroll
                         isAutoscrollEnabled = isAutoscrollEnabled,
                         onToggleAutoscroll = onToggleAutoscroll,
+                        onAutoscrollLongPress = onAutoscrollLongPress,
                         // KMK <--
                         // SY <--
                     )
