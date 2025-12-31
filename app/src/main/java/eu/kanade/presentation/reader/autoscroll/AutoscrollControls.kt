@@ -88,9 +88,9 @@ fun AutoscrollSpeedControl(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Current speed display
-            val displaySpeed = 0.1f + (currentSpeed * 10.9f)
+            val displaySpeed = (currentSpeed * 100f).toInt()
             Text(
-                text = stringResource(SYMR.strings.eh_autoscroll) + ": ${String.format("%.1f", displaySpeed)}x",
+                text = stringResource(SYMR.strings.eh_autoscroll) + ": ${displaySpeed}%",
                 style = MaterialTheme.typography.labelMedium,
             )
 
@@ -116,17 +116,16 @@ fun AutoscrollSpeedControl(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 listOf(
-                    0.1f to "0.1x",
-                    0.5f to "0.5x",
-                    1.0f to "1.0x",
-                    2.0f to "2.0x",
-                    3.0f to "3.0x",
-                    5.0f to "5.0x",
-                    7.0f to "7.0x",
-                    10.0f to "10.0x",
-                    11.0f to "11.0x",
-                ).forEach { (displayValue, label) ->
-                    val scaleValue = (displayValue - 0.1f) / 10.9f
+                    1 to "01%",
+                    2 to "02%",
+                    3 to "03%",
+                    10 to "10%",
+                    25 to "25%",
+                    50 to "50%",
+                    75 to "75%",
+                    100 to "100%",
+                ).forEach { (percent, label) ->
+                    val scaleValue = percent / 100f
                     AssistChip(
                         onClick = { onSpeedChange(scaleValue) },
                         label = { Text(label) },
@@ -137,7 +136,7 @@ fun AutoscrollSpeedControl(
 
             // Info text
             Text(
-                text = "Lower values = slower scroll, Higher values = faster scroll",
+                text = "Percentage of screen height scrolled per second",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

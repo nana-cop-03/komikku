@@ -50,6 +50,8 @@ class ScrollTimer(
     private val baseScrollDelta =
         (resources.displayMetrics.density * 5f).toInt().coerceAtLeast(1)
 
+    private val screenHeight = resources.displayMetrics.heightPixels
+
     val isActive: StateFlow<Boolean>
         get() = isRunning
 
@@ -57,7 +59,8 @@ class ScrollTimer(
         // Listen to main speed and multiplier and combine into pixels/sec
         readerPreferences.autoscrollMainSpeed().changes()
             .combine(readerPreferences.autoscrollMultiplier().changes()) { main, mult ->
-                main.toFloat() * mult
+                val normalizedSpeed = main.toFloat() / 100f
+                normalizedSpeed * screenHeight * mult
             }
             .flowOn(Dispatchers.Default)
             .onEach { pixelsPerSecond ->
@@ -145,7 +148,7 @@ class ScrollTimer(
                     val delta = fractionalAccumulator.toInt()
 
                     if (delta > 0) {
-                        if (!listener.scrollBy(delta, true)) {
+                        if (!listener.scrollBy(delta, false)) {
                             accumulator += delayMs
                         }
                         fractionalAccumulator -= delta

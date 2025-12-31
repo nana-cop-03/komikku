@@ -329,12 +329,17 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
         return when (viewer) {
             is WebtoonViewer -> {
                 // For webtoon continuous reader, scroll within the page
+                val recycler = viewer.recycler
+                val before = recycler.computeVerticalScrollOffset()
                 if (smooth) {
-                    viewer.recycler.smoothScrollBy(0, delta)
+                    recycler.smoothScrollBy(0, delta)
+                    // For smooth scroll, assume it always tries to scroll
+                    true
                 } else {
-                    viewer.recycler.scrollBy(0, delta)
+                    recycler.scrollBy(0, delta)
+                    val after = recycler.computeVerticalScrollOffset()
+                    after > before  // Return true if actually scrolled
                 }
-                true
             }
 
             is PagerViewer -> {
