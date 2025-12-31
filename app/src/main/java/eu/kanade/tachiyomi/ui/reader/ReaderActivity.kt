@@ -356,9 +356,8 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
         val viewer = viewModel.state.value.viewer
         when (viewer) {
             is WebtoonViewer -> {
-                // For webtoon, scroll by a page amount (similar to Kotatsu: ~90% of height)
-                val scrollAmount = (viewer.recycler.height * 0.9f).toInt() * delta
-                viewer.recycler.smoothScrollBy(0, scrollAmount)
+                // For webtoon continuous reader, don't switch pages - just scroll continuously
+                // The viewer will load more content as needed
             }
 
             is PagerViewer -> {
