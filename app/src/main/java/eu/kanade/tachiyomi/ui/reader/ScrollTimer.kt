@@ -87,7 +87,7 @@ class ScrollTimer(
     }
 
     private var pixelsPerSecond = 0f
-    private var pixelsPerTick = 1
+    // pixelsPerSecond can be fractional; use a fractional accumulator for smooth scrolling
 
     private fun onSpeedChanged(pixelsSec: Float) {
         pixelsPerSecond = pixelsSec
@@ -100,7 +100,7 @@ class ScrollTimer(
 
         // Use a short tick for smoothness; compute how many pixels to move each tick
         delayMs = 16L
-        pixelsPerTick = kotlin.math.max(1, (pixelsPerSecond * (delayMs / 1000f)).roundToInt())
+        // per-tick pixel amount will be accumulated as fractional to avoid rounding jitter
 
         // Keep a reasonable page switch delay
         pageSwitchDelay = 800L
@@ -120,6 +120,7 @@ class ScrollTimer(
         job = coroutineScope.launch(Dispatchers.Default) {
             var accumulator = 0L
             var speedFactor = 1f
+            var fractionalAccumulator = 0.0
 
             while (isActive) {
                 // Smooth pause / resume
@@ -139,9 +140,17 @@ class ScrollTimer(
                 withContext(Dispatchers.Main) {
                     if (!listener.isReaderResumed()) return@withContext
 
-                    // Scale movement by speedFactor smooth pause/resume
-                    val delta = (pixelsPerTick * speedFactor).toInt().coerceAtLeast(1)
-                    if (!listener.scrollBy(delta, true)) {
+                    // Accumulate fractional pixels for smooth, laminar movement
+                    fractionalAccumulator += (pixelsPerSecond * (delayMs / 1000.0)) * speedFactor
+                    val delta = fractionalAccumulator.toInt()
+
+                    if (delta > 0) {
+                        if (!listener.scrollBy(delta, true)) {
+                            accumulator += delayMs
+                        }
+                        fractionalAccumulator -= delta
+                    } else {
+                        // no movement happened this tick; count towards page switch
                         accumulator += delayMs
                     }
 
