@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,10 +53,14 @@ class ScrollTimer(
         get() = isRunning
 
     init {
-        readerPreferences.autoscrollInterval().changes()
+        // Listen to main speed and multiplier and combine into pixels/sec
+        readerPreferences.autoscrollMainSpeed().changes()
+            .combine(readerPreferences.autoscrollMultiplier().changes()) { main, mult ->
+                main.toFloat() * mult
+            }
             .flowOn(Dispatchers.Default)
-            .onEach { speed ->
-                onSpeedChanged(speed)
+            .onEach { pixelsPerSecond ->
+                onSpeedChanged(pixelsPerSecond)
             }
             .launchIn(coroutineScope)
     }
@@ -80,23 +85,24 @@ class ScrollTimer(
         }
     }
 
-    private fun onSpeedChanged(speed: Float) {
-        if (speed <= 0f) {
+    private var pixelsPerSecond = 0f
+    private var pixelsPerTick = 1
+
+    private fun onSpeedChanged(pixelsSec: Float) {
+        pixelsPerSecond = pixelsSec
+
+        if (pixelsPerSecond <= 0f) {
             delayMs = 0L
             pageSwitchDelay = 0L
             return
         }
 
-        // ✅ Quadratic easing (gentle low, fast high)
-        val eased = speed * speed
+        // Use a short tick for smoothness; compute how many pixels to move each tick
+        delayMs = 16L
+        pixelsPerTick = kotlin.math.max(1, (pixelsPerSecond * (delayMs / 1000f)).roundToInt())
 
-        delayMs = (MAX_DELAY * (1f - eased))
-            .roundToLong()
-            .coerceIn(6L, MAX_DELAY)
-
-        pageSwitchDelay = (MAX_SWITCH_DELAY * (1f - eased))
-            .roundToLong()
-            .coerceAtLeast(400L)
+        // Keep a reasonable page switch delay
+        pageSwitchDelay = 800L
 
         restartJob()
     }
@@ -132,8 +138,9 @@ class ScrollTimer(
                 withContext(Dispatchers.Main) {
                     if (!listener.isReaderResumed()) return@withContext
 
-                    // ✅ IMPORTANT: do NOT scale delta by speedFactor
-                    if (!listener.scrollBy(baseScrollDelta, true)) {
+                    // Scale movement by speedFactor smooth pause/resume
+                    val delta = (pixelsPerTick * speedFactor).toInt().coerceAtLeast(1)
+                    if (!listener.scrollBy(delta, true)) {
                         accumulator += delayMs
                     }
 

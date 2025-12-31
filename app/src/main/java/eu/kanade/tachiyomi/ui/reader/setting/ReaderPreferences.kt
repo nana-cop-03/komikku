@@ -184,6 +184,10 @@ class ReaderPreferences(
 
     fun autoscrollShowFab() = preferenceStore.getBoolean("eh_autoscroll_show_fab", false)
 
+    fun autoscrollMainSpeed() = preferenceStore.getInt("eh_util_autoscroll_main", 1)
+
+    fun autoscrollMultiplier() = preferenceStore.getFloat("eh_util_autoscroll_multiplier", 1f)
+
     fun smoothAutoScroll() = preferenceStore.getBoolean("smooth_auto_scroll", true)
 
     fun preserveReadingPosition() = preferenceStore.getBoolean("eh_preserve_reading_position", false)

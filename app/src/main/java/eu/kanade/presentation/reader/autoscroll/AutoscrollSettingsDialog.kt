@@ -29,6 +29,7 @@ import tachiyomi.i18n.MR
 import tachiyomi.i18n.sy.SYMR
 import tachiyomi.presentation.core.i18n.stringResource
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Dialog for autoscroll speed settings.
@@ -39,14 +40,16 @@ import kotlin.math.abs
 fun AutoscrollSettingsDialog(
     isEnabled: Boolean = false,
     onToggleEnabled: (Boolean) -> Unit = {},
-    currentSpeed: Float,
-    onSpeedChange: (Float) -> Unit,
+    currentMainSpeed: Int,
+    currentMultiplier: Float,
+    onMainChange: (Int) -> Unit,
+    onMultiplierChange: (Float) -> Unit,
     onDismissRequest: () -> Unit,
     showFabButton: Boolean = false,
     onShowFabChange: (Boolean) -> Unit = {},
 ) {
-    // Speed value (0.000001 to 0.97) - continuous range like Kotatsu
-    var sliderValue by remember { mutableStateOf(currentSpeed) }
+    var mainSpeed by remember { mutableStateOf(currentMainSpeed.coerceIn(1, 100)) }
+    var multiplier by remember { mutableStateOf(currentMultiplier) }
     var showFab by remember { mutableStateOf(showFabButton) }
     var isAutoscrollEnabled by remember { mutableStateOf(isEnabled) }
 
@@ -83,7 +86,7 @@ fun AutoscrollSettingsDialog(
                 ) {
                     Text(
                         text = stringResource(SYMR.strings.eh_autoscroll),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(start = 8.dp),
                     )
                     FilledTonalIconButton(
@@ -110,7 +113,7 @@ fun AutoscrollSettingsDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    Checkbox(
+                    androidx.compose.material3.Switch(
                         checked = isAutoscrollEnabled,
                         onCheckedChange = { isChecked ->
                             isAutoscrollEnabled = isChecked
@@ -119,42 +122,65 @@ fun AutoscrollSettingsDialog(
                     )
                 }
 
-                // Speed label
+                // Main speed label
                 Text(
-                    text = stringResource(MR.strings.speed),
+                    text = stringResource(MR.strings.autoscroll),
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(start = 16.dp, top = 4.dp),
                 )
 
-                // Smooth slider for speed (0.000001 to 0.97, like Kotatsu)
+                // Main slider (1..100)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                 ) {
                     Slider(
-                        value = sliderValue,
+                        value = mainSpeed.toFloat(),
                         onValueChange = { newValue ->
-                            sliderValue = newValue
-                            // Only update if change is significant
-                            if (abs(newValue - currentSpeed) > 0.0001) {
-                                onSpeedChange(newValue)
-                            }
+                            mainSpeed = newValue.roundToInt().coerceIn(1, 100)
+                            onMainChange(mainSpeed)
                         },
-                        valueRange = 0.000001f..0.97f,
-                        steps = 96, // 97 possible values for smooth feel
+                        valueRange = 1f..100f,
+                        steps = 98,
                         modifier = Modifier.fillMaxWidth(),
                     )
 
-                    // Speed display (0.1x to 10.0x)
-                    val displaySpeed = 0.1f + (sliderValue * 10f)
                     Text(
-                        text = String.format("%.1fx", displaySpeed),
+                        text = "$mainSpeed",
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
                             .padding(top = 2.dp),
                     )
+                }
+
+                // Multiplier label
+                Text(
+                    text = stringResource(MR.strings.autoscroll_multiplier),
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(start = 16.dp, top = 4.dp),
+                )
+
+                // Multiplier options
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    val options = listOf(0.25f, 0.5f, 0.75f, 1f) + (2..10).map { it.toFloat() }
+                    options.forEach { opt ->
+                        val selected = opt == multiplier
+                        FilledTonalIconButton(
+                            onClick = {
+                                multiplier = opt
+                                onMultiplierChange(opt)
+                            },
+                        ) {
+                            Text(text = if (opt >= 1f) "${opt.toInt()}x" else "${opt}" )
+                        }
+                    }
                 }
 
                 // FAB visibility toggle (like Kotatsu)
@@ -170,7 +196,7 @@ fun AutoscrollSettingsDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    Checkbox(
+                    androidx.compose.material3.Switch(
                         checked = showFab,
                         onCheckedChange = { isChecked ->
                             showFab = isChecked

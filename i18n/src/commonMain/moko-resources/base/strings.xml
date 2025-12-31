@@ -159,6 +159,8 @@
     <string name="action_close">Close</string>
     <string name="autoscroll">Autoscroll</string>
     <string name="speed">Speed</string>
+    <string name="autoscroll_multiplier">Multiplier</string>
+    <string name="autoscroll_main_speed">Main speed</string>
     <string name="show_floating_control_button">Show floating control button</string>
     <string name="chapters">Chapters</string>
     <string name="storage_usage">Storage Used: %s</string>

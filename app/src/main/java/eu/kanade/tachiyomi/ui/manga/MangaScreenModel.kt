@@ -58,6 +58,11 @@ import eu.kanade.tachiyomi.data.download.model.Download
 import eu.kanade.tachiyomi.data.track.EnhancedTracker
 import eu.kanade.tachiyomi.data.track.TrackerManager
 import eu.kanade.tachiyomi.data.track.mdlist.MdList
+import eu.kanade.tachiyomi.data.notification.NotificationHandler
+import eu.kanade.tachiyomi.data.notification.Notifications
+import eu.kanade.tachiyomi.util.system.cancelNotification
+import eu.kanade.tachiyomi.util.system.notificationBuilder
+import eu.kanade.tachiyomi.util.system.notify
 import eu.kanade.tachiyomi.network.HttpException
 import eu.kanade.tachiyomi.source.PagePreviewSource
 import eu.kanade.tachiyomi.source.Source
@@ -78,6 +83,7 @@ import exh.eh.EHentaiUpdateHelper
 import exh.log.xLogD
 import exh.md.utils.FollowStatus
 import exh.metadata.metadata.RaisedSearchMetadata
+import java.util.zip.ZipInputStream
 import exh.metadata.metadata.base.FlatMetadata
 import exh.source.MERGED_SOURCE_ID
 import exh.source.getMainSource
@@ -505,9 +511,9 @@ class MangaScreenModel(
             }
 
             // Launch PDF conversion for local manga
-            screenModelScope.launch {
+            launchIO {
                 if (manga.isLocal()) {
-                    val source = sourceManager.get(manga.source) as? LocalSource ?: return@launch
+                    val source = sourceManager.get(manga.source) as? LocalSource ?: return@launchIO
                     for (item in chapters) {
                         val chapter = item.chapter
                         try {
@@ -518,11 +524,24 @@ class MangaScreenModel(
                                 val cbzName = chapter.name + ".cbz"
                                 var cbzFile = mangaDir.findFile(cbzName)
 
-                                // Clean up incomplete conversions (e.g., if user exited during conversion)
-                                if (cbzFile != null && cbzFile.length() == 0L) {
-                                    logcat(LogPriority.WARN) { "Found incomplete conversion for ${chapter.name}, removing..." }
-                                    cbzFile.delete()
-                                    cbzFile = null
+                                // Clean up incomplete or corrupted conversions (e.g., if user exited during conversion)
+                                if (cbzFile != null) {
+                                    var valid = true
+                                    try {
+                                        cbzFile.openInputStream().use { ins ->
+                                            ZipInputStream(ins).use { zis ->
+                                                if (zis.nextEntry == null) valid = false
+                                            }
+                                        }
+                                    } catch (e: Exception) {
+                                        valid = false
+                                    }
+
+                                    if (!valid || cbzFile.length() == 0L) {
+                                        logcat(LogPriority.WARN) { "Found incomplete/corrupted conversion for ${chapter.name}, removing..." }
+                                        cbzFile.delete()
+                                        cbzFile = null
+                                    }
                                 }
 
                                 if (cbzFile == null) {
@@ -532,10 +551,27 @@ class MangaScreenModel(
                                     updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADING, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
 
                                     try {
+                                        // Show a simple progress notification for conversion
+                                        val notifBuilder = context.notificationBuilder(Notifications.CHANNEL_DOWNLOADER_PROGRESS) {
+                                            setSmallIcon(android.R.drawable.stat_sys_download)
+                                            setContentTitle("${manga.title} - ${chapter.name}")
+                                            setOngoing(true)
+                                            setOnlyAlertOnce(true)
+                                            setProgress(100, 0, false)
+                                            setContentIntent(NotificationHandler.openDownloadManagerPendingActivity(context))
+                                        }
+
                                         source.convertPdfToCbz(chapterFile, cbzFileCreated, backupDir) { current, total ->
-                                            conversionProgress[chapter.id] = (current * 100 / total).coerceIn(0, 100)
+                                            val percent = (current * 100 / total).coerceIn(0, 100)
+                                            conversionProgress[chapter.id] = percent
+                                            // Update notification
+                                            notifBuilder.setProgress(100, percent, false)
+                                            context.notify(Notifications.ID_DOWNLOAD_CHAPTER_PROGRESS, notifBuilder.build())
+
                                             updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADING, downloadProgress = conversionProgress[item.chapter.id] ?: 0) else item }, conversionProgress = conversionProgress.toMap()) }
                                         }
+                                        // Dismiss progress notification on success
+                                        context.cancelNotification(Notifications.ID_DOWNLOAD_CHAPTER_PROGRESS)
                                         conversionProgress.remove(chapter.id)
                                         updateSuccessState { it.copy(chapters = it.chapters.map { item -> if (item.chapter.id == chapter.id) item.copy(downloadState = Download.State.DOWNLOADED, downloadProgress = 0) else item }, conversionProgress = conversionProgress.toMap()) }
                                     } catch (e: Exception) {

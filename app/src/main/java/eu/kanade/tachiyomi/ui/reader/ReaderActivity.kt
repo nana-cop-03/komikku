@@ -558,6 +558,7 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
 
             // KMK --> Collect autoscroll state (don't open dialog, let button just toggle)
             val isAutoscrollEnabled by scrollTimer.isActive.collectAsState()
+            val showFabPref by readerPreferences.autoscrollShowFab().collectAsState()
             // KMK --> Collect reading stats
             val readingStats = remember(state.viewerChapters) {
                 viewModel.getReadingStats()
@@ -601,6 +602,7 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
 
             ReaderAppBars(
                 visible = state.menuVisible,
+                showAutoscrollFab = showFabPref,
                 fullscreen = isFullscreen,
 
                 mangaTitle = state.manga?.title,
@@ -801,18 +803,18 @@ class ReaderActivity : BaseActivity(), ReaderControlDelegate.OnInteractionListen
                 }
                 // SY -->
                 ReaderViewModel.Dialog.AutoScrollHelp -> {
-                    val autoscrollSpeed by readerPreferences.autoscrollInterval().collectAsState()
+                    val mainSpeed by readerPreferences.autoscrollMainSpeed().collectAsState()
+                    val multiplier by readerPreferences.autoscrollMultiplier().collectAsState()
                     val showFab by readerPreferences.autoscrollShowFab().collectAsState()
                     AutoscrollSettingsDialog(
                         isEnabled = isAutoscrollEnabled,
                         onToggleEnabled = { isEnabled ->
                             scrollTimer.setActive(isEnabled)
                         },
-                        currentSpeed = (autoscrollSpeed - 0.1f) / 10.9f,
-                        onSpeedChange = { normalizedSpeed ->
-                            val actualSpeed = 0.1f + (normalizedSpeed * 10.9f)
-                            readerPreferences.autoscrollInterval().set(actualSpeed)
-                        },
+                        currentMainSpeed = mainSpeed,
+                        currentMultiplier = multiplier,
+                        onMainChange = { newVal -> readerPreferences.autoscrollMainSpeed().set(newVal) },
+                        onMultiplierChange = { newVal -> readerPreferences.autoscrollMultiplier().set(newVal) },
                         showFabButton = showFab,
                         onShowFabChange = { newValue ->
                             readerPreferences.autoscrollShowFab().set(newValue)

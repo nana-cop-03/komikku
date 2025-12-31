@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
+import eu.kanade.presentation.reader.autoscroll.AutoscrollFab
 import eu.kanade.presentation.components.AppBar
 import eu.kanade.presentation.components.AppBarActions
 import eu.kanade.presentation.reader.components.ChapterNavigator
@@ -87,6 +89,9 @@ fun ReaderAppBars(
     onSaveImage: (() -> Unit)? = null,
     readingStats: Pair<Int, Int>? = null,
     // KMK <--
+    // Show floating autoscroll FAB when enabled in preferences
+    showAutoscrollFab: Boolean = false,
+    autoscrollFabPadding: Dp = 16.dp,
 
     viewer: Viewer?,
     onNextChapter: () -> Unit,
@@ -168,6 +173,30 @@ fun ReaderAppBars(
                 isVerticalSlider = true,
                 currentPageText = currentPageText,
             )
+        }
+
+        // Floating Autoscroll FAB (overlayed above content)
+        // Only show when reader menu / bottom bar is hidden to avoid overlay conflicts
+        if (showAutoscrollFab && !visible) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // place at bottom end with offset so it doesn't overlap bottom bar
+                AutoscrollFab(
+                    isActive = isAutoscrollEnabled,
+                    onToggle = { scrollActive ->
+                        // toggle via provided handler
+                        onAutoscrollLongPress?.let {
+                            // prefer long press handler for direct toggle
+                            it()
+                        } ?: run {
+                            // fallback: use onToggleAutoscroll if provided
+                            onToggleAutoscroll?.invoke()
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = autoscrollFabPadding, bottom = autoscrollFabPadding + 56.dp),
+                )
+            }
         }
 
         AnimatedVisibility(
