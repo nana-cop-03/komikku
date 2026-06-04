@@ -1305,8 +1305,12 @@ class ReaderViewModel @JvmOverloads constructor(
         ImageUtil.findImageType(stream1) ?: throw Exception("Not an image")
         val stream2 = page2.stream!!
         ImageUtil.findImageType(stream2) ?: throw Exception("Not an image")
-        val imageBitmap = ImageDecoder.newInstance(stream1())?.decode()!!
-        val imageBitmap2 = ImageDecoder.newInstance(stream2())?.decode()!!
+        var imageBitmap = ImageDecoder.newInstance(stream1())?.decode()!!
+        var imageBitmap2 = ImageDecoder.newInstance(stream2())?.decode()!!
+        
+        // Apply EXIF rotation if present
+        imageBitmap = ImageUtil.applyExifRotation(imageBitmap, stream1)
+        imageBitmap2 = ImageUtil.applyExifRotation(imageBitmap2, stream2)
 
         val chapter = page1.chapter.chapter
 

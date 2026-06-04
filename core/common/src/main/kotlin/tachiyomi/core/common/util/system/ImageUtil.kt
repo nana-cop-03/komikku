@@ -170,11 +170,75 @@ object ImageUtil {
     }
 
     /**
+     * Get the rotation degrees from EXIF orientation tag
+     */
+    fun getExifRotationDegrees(imageSource: BufferedSource): Int {
+        return try {
+            val exif = ExifInterface(imageSource.peek().inputStream())
+            when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> 0  // Handle flips separately if needed
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> 0
+                ExifInterface.ORIENTATION_TRANSPOSE -> 0
+                ExifInterface.ORIENTATION_TRANSVERSE -> 0
+                else -> 0
+            }
+        } catch (e: Exception) {
+            logcat(LogPriority.DEBUG, e) { "Failed to read EXIF orientation" }
+            0
+        }
+    }
+
+    /**
+     * Apply EXIF rotation to a bitmap
+     */
+    fun applyExifRotation(bitmap: Bitmap, imageSource: BufferedSource): Bitmap {
+        return try {
+            val exif = ExifInterface(imageSource.peek().inputStream())
+            val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+            applyExifRotationToBitmap(bitmap, orientation)
+        } catch (e: Exception) {
+            logcat(LogPriority.DEBUG, e) { "Failed to apply EXIF rotation" }
+            bitmap
+        }
+    }
+
+    /**
+     * Apply EXIF orientation to bitmap based on orientation tag
+     */
+    private fun applyExifRotationToBitmap(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f, bitmap.width / 2f, 0f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f, 0f, bitmap.height / 2f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f, bitmap.height / 2f, bitmap.height / 2f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(270f)
+                matrix.postScale(-1f, 1f, bitmap.height / 2f, bitmap.height / 2f)
+            }
+            else -> return bitmap
+        }
+        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        bitmap.recycle()
+        return rotated
+    }
+
+    /**
      * Split the image into left and right parts, then merge them into a
      * new vertically-aligned image.
      */
     fun splitAndMerge(imageSource: BufferedSource, upperSide: Side): BufferedSource {
-        val imageBitmap = BitmapFactory.decodeStream(imageSource.inputStream())
+        var imageBitmap = BitmapFactory.decodeStream(imageSource.inputStream())
+        // Apply EXIF rotation if present
+        imageBitmap = applyExifRotation(imageBitmap, imageSource)
         val height = imageBitmap.height
         val width = imageBitmap.width
 
@@ -216,7 +280,9 @@ object ImageUtil {
         viewHeight: Int,
         backgroundContext: Context,
     ): BufferedSource {
-        val imageBitmap = ImageDecoder.newInstance(imageSource.inputStream())?.decode()!!
+        var imageBitmap = ImageDecoder.newInstance(imageSource.inputStream())?.decode()!!
+        // Apply EXIF rotation if present
+        imageBitmap = applyExifRotation(imageBitmap, imageSource)
         val height = imageBitmap.height
         val width = imageBitmap.width
 
@@ -382,11 +448,15 @@ object ImageUtil {
      */
     fun chooseBackground(context: Context, imageSource: BufferedSource): Drawable {
         val decoder = ImageDecoder.newInstance(imageSource.inputStream())
-        val image = decoder?.decode()
+        var image = decoder?.decode()
         decoder?.recycle()
 
         val whiteColor = Color.WHITE
         if (image == null) return whiteColor.toDrawable()
+        
+        // Apply EXIF rotation if present
+        image = applyExifRotation(image, imageSource)
+        
         if (image.width < 50 || image.height < 50) {
             return whiteColor.toDrawable()
         }

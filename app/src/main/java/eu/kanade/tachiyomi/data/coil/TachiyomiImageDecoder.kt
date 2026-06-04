@@ -66,6 +66,9 @@ class TachiyomiImageDecoder(private val resources: ImageSource, private val opti
 
         check(bitmap != null) { "Failed to decode image" }
 
+        // Apply EXIF rotation if present
+        bitmap = ImageUtil.applyExifRotation(bitmap, resources.source())
+
         if (
             options.bitmapConfig == Bitmap.Config.HARDWARE &&
             ImageUtil.canUseHardwareBitmap(bitmap)

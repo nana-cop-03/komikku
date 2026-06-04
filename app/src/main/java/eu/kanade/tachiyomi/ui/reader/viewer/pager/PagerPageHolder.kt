@@ -349,7 +349,9 @@ class PagerPageHolder(
 
     private fun decodeImage(imageSource: BufferedSource): Bitmap? {
         return try {
-            ImageDecoder.newInstance(imageSource.inputStream())?.decode()
+            val bitmap = ImageDecoder.newInstance(imageSource.inputStream())?.decode() ?: return null
+            // Apply EXIF rotation if present
+            ImageUtil.applyExifRotation(bitmap, imageSource)
         } catch (e: Exception) {
             logcat(LogPriority.ERROR, e) { "Cannot decode image" }
             null
