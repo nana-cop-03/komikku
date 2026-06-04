@@ -1309,8 +1309,8 @@ class ReaderViewModel @JvmOverloads constructor(
         var imageBitmap2 = ImageDecoder.newInstance(stream2())?.decode()!!
         
         // Apply EXIF rotation if present
-        imageBitmap = ImageUtil.applyExifRotation(imageBitmap, stream1)
-        imageBitmap2 = ImageUtil.applyExifRotation(imageBitmap2, stream2)
+        imageBitmap = ImageUtil.applyExifRotation(imageBitmap, okio.source(stream1()).buffered())
+        imageBitmap2 = ImageUtil.applyExifRotation(imageBitmap2, okio.source(stream2()).buffered())
 
         val chapter = page1.chapter.chapter
 
