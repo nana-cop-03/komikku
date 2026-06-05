@@ -109,7 +109,7 @@ import uy.kohesive.injekt.api.get
 import java.time.Instant
 import java.util.Date
 import okio.source
-import okio.buffered
+import okio.buffer
 
 /**
  * Presenter used by the activity to perform background operations.
@@ -1311,8 +1311,8 @@ class ReaderViewModel @JvmOverloads constructor(
         var imageBitmap2 = ImageDecoder.newInstance(stream2())?.decode()!!
         
         // Apply EXIF rotation if present
-        imageBitmap = ImageUtil.applyExifRotation(imageBitmap, stream1().source().buffered())
-        imageBitmap2 = ImageUtil.applyExifRotation(imageBitmap2, stream2().source().buffered())
+        imageBitmap = ImageUtil.applyExifRotation(imageBitmap, stream1().source().buffer())
+        imageBitmap2 = ImageUtil.applyExifRotation(imageBitmap2, stream2().source().buffer())
 
         val chapter = page1.chapter.chapter
 
